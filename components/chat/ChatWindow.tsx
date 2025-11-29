@@ -35,8 +35,7 @@ const messages = [
 
 export const ChatWindow = ({ conversationId }: ChatWindowProps) => {
     const handleSendMessage = (content: string) => {
-        console.log("Sending message:", content);
-        // Add logic to send message
+        // TODO: Implement message sending logic
     };
 
     return (
