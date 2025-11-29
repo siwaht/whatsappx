@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WebhookEvent {
+  id           Int      @id @default(autoincrement())
+  instanceName String   @map("instance_name")
+  eventType    String   @map("event_type")
+  payload      Json
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("webhook_events")
+}
+
+model MessageStat {
+  id           Int      @id @default(autoincrement())
+  instanceName String   @map("instance_name")
+  remoteJid    String   @map("remote_jid")
+  direction    String
+  messageType  String   @map("message_type")
+  status       String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("message_stats")
+}
+
+model ContactCache {
+  id             Int      @id @default(autoincrement())
+  instanceName   String   @map("instance_name")
+  remoteJid      String   @unique @map("remote_jid")
+  pushName       String?  @map("push_name")
+  profilePicture String?  @map("profile_picture")
+  isGroup        Boolean  @default(false) @map("is_group")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("contacts_cache")
+}
