@@ -14,6 +14,9 @@ model WebhookEvent {
   payload      Json
   createdAt    DateTime @default(now()) @map("created_at")
 
+  @@index([instanceName])
+  @@index([eventType])
+  @@index([createdAt])
   @@map("webhook_events")
 }
 
@@ -26,6 +29,9 @@ model MessageStat {
   status       String
   createdAt    DateTime @default(now()) @map("created_at")
 
+  @@index([instanceName])
+  @@index([remoteJid])
+  @@index([createdAt])
   @@map("message_stats")
 }
 
@@ -38,5 +44,130 @@ model ContactCache {
   isGroup        Boolean  @default(false) @map("is_group")
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
+  @@index([instanceName])
   @@map("contacts_cache")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  firstName     String?   @map("first_name")
+  lastName      String?   @map("last_name")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  failedLogins  Int       @default(0) @map("failed_logins")
+  lockedUntil   DateTime? @map("locked_until")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdById   Int?      @map("created_by_id")
+  createdBy     User?     @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers  User[]    @relation("UserCreatedBy")
+  assignedRoles UserRole[] @relation("UserAssignedRole")
+  userRoles     UserRole[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([username])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  userRoles   UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  resource    String    // e.g., "instances", "messages", "contacts", "webhooks", "users"
+  action      String    // e.g., "create", "read", "update", "delete", "manage"
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  rolePermissions RolePermission[]
+
+  @@index([resource])
+  @@index([action])
+  @@map("permissions")
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  roleId    Int      @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  assignedById Int?   @map("assigned_by_id")
+  assignedBy User?   @relation("UserAssignedRole", fields: [assignedById], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id          Int      @id @default(autoincrement())
+  roleId      Int      @map("role_id")
+  permissionId Int     @map("permission_id")
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission  Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  action     String   // e.g., "login", "logout", "create_user", "update_settings"
+  resource   String?  // e.g., "user", "instance", "webhook"
+  resourceId String?  @map("resource_id")
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model RateLimitEntry {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique // IP address or user ID
+  count      Int      @default(1)
+  windowStart DateTime @default(now()) @map("window_start")
+  
+  @@index([key])
+  @@index([windowStart])
+  @@map("rate_limit_entries")
 }

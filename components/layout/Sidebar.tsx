@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +11,11 @@ import {
     Settings,
     LogOut,
     Smartphone,
-    Webhook
+    Webhook,
+    Shield
 } from "lucide-react";
+import { useAuth } from "@/lib/store/auth";
+import { useEffect } from "react";
 
 const routes = [
     {
@@ -52,8 +55,31 @@ const routes = [
     },
 ];
 
+const adminRoutes = [
+    {
+        label: "Users",
+        icon: Shield,
+        href: "/users",
+        color: "text-blue-500",
+    },
+    {
+        label: "Roles",
+        icon: Shield,
+        href: "/roles",
+        color: "text-indigo-500",
+    },
+];
+
 export const Sidebar = () => {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user, fetchUser, logout: handleLogout } = useAuth();
+
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
+
+    const isAdmin = user?.roles.includes("admin") || user?.roles.includes("superadmin");
 
     return (
         <div className="space-y-4 py-4 flex flex-col h-full bg-secondary text-secondary-foreground">
@@ -83,10 +109,38 @@ export const Sidebar = () => {
                             </div>
                         </Link>
                     ))}
+                    {isAdmin && (
+                        <>
+                            <div className="pt-4 pb-2 px-3">
+                                <div className="text-xs font-semibold text-muted-foreground uppercase">
+                                    Administration
+                                </div>
+                            </div>
+                            {adminRoutes.map((route) => (
+                                <Link
+                                    key={route.href}
+                                    href={route.href}
+                                    className={cn(
+                                        "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-primary hover:bg-primary/10 rounded-lg transition",
+                                        pathname === route.href ? "text-primary bg-primary/10" : "text-muted-foreground"
+                                    )}
+                                >
+                                    <div className="flex items-center flex-1">
+                                        <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
+                                        {route.label}
+                                    </div>
+                                </Link>
+                            ))}
+                        </>
+                    )}
                 </div>
             </div>
             <div className="px-3 py-2">
-                <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-primary/10">
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    onClick={handleLogout}
+                >
                     <LogOut className="h-5 w-5 mr-3" />
                     Logout
                 </Button>

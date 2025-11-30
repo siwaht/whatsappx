@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Evolution } from '@/lib/evolution';
 import { db } from '@/lib/db';
+import { requirePermission } from '@/lib/middleware';
 
 export async function POST(request: NextRequest) {
   try {
+    // Webhook POST is for receiving webhooks, no auth needed
     const body = await request.json();
 
     await db.webhookEvent.create({
@@ -26,6 +28,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requirePermission(request, 'webhooks', 'read');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const instanceName = searchParams.get('instance');
 
@@ -56,6 +63,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const authResult = await requirePermission(request, 'webhooks', 'update');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { instanceName, enabled, url, events, webhookByEvents } = body;
 

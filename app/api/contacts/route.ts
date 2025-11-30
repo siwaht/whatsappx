@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Evolution } from '@/lib/evolution';
+import { requirePermission } from '@/lib/middleware';
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requirePermission(request, 'contacts', 'read');
+    if (authResult.response) {
+      return authResult.response;
+    }
     const searchParams = request.nextUrl.searchParams;
     const instanceName = searchParams.get('instance');
 

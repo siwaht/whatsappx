@@ -20,16 +20,19 @@ export const evolutionApi = axios.create({
     },
 });
 
-const handleApiError = (error: unknown): never => {
+const handleApiError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{ message?: string }>;
-    throw new Error(
+    return (
       axiosError.response?.data?.message ||
       axiosError.message ||
       'An error occurred while communicating with Evolution API'
     );
   }
-  throw error;
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'An unknown error occurred';
 };
 
 export const Evolution = {

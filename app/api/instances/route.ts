@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Evolution } from '@/lib/evolution';
+import { requirePermission } from '@/lib/middleware';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const authResult = await requirePermission(request, 'instances', 'read');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const result = await Evolution.instance.fetchInstances();
 
     if (!result.success) {
@@ -23,6 +29,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requirePermission(request, 'instances', 'create');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { instanceName } = body;
 

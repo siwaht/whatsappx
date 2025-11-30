@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Evolution } from '@/lib/evolution';
+import { requirePermission } from '@/lib/middleware';
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requirePermission(request, 'messages', 'create');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { instanceName, number, text, mediaUrl, mediaType, fileName, caption } = body;
 

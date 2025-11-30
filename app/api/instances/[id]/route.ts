@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Evolution } from '@/lib/evolution';
+import { requirePermission } from '@/lib/middleware';
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requirePermission(request, 'instances', 'delete');
+    if (authResult.response) {
+      return authResult.response;
+    }
     const instanceName = params.id;
 
     const result = await Evolution.instance.delete(instanceName);
@@ -31,6 +36,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requirePermission(request, 'instances', 'update');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const instanceName = params.id;
     const body = await request.json();
     const { action } = body;
