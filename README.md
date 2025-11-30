@@ -14,13 +14,24 @@ A modern, full-featured WhatsApp management dashboard built with Next.js 14 and 
 - **Conversations** - WhatsApp-style chat interface (coming soon)
 - **Contact Management** - View and manage contacts with search/filter
 - **Group Management** - Comprehensive group administration
+- **User Management** - Complete user administration with role-based access control
 - **Webhook Configuration** - Real-time event notifications (coming soon)
 - **Settings Panel** - Instance behavior configuration (coming soon)
+
+### Authentication & Security
+- **Secure Authentication** - NextAuth.js v5 with credential-based login
+- **Role-Based Access Control (RBAC)** - Fine-grained permissions system
+- **User Management** - Add, update, disable, and delete users
+- **Permission System** - 5 default roles (Super Admin, Admin, Manager, Operator, Viewer)
+- **Protected Routes** - Middleware-based route protection
+- **Session Management** - JWT-based sessions with 30-day expiration
+- **Password Security** - Bcrypt password hashing
 
 ### Key Highlights
 - Real-time connection status monitoring
 - QR code display for instance pairing
 - Message statistics and analytics
+- Multi-user support with granular permissions
 - Responsive, mobile-friendly design
 - Type-safe API integration
 - Dark mode support (planned)
@@ -80,12 +91,19 @@ A modern, full-featured WhatsApp management dashboard built with Next.js 14 and 
 
 5. **Initialize the database**
    ```bash
+   # Initialize main schema
    docker exec -i whatsapp-dashboard-postgres psql -U whatsapp -d whatsapp_dashboard < database/schema.sql
+
+   # Initialize user management schema
+   docker exec -i whatsapp-dashboard-postgres psql -U whatsapp -d whatsapp_dashboard < database/user-management-schema.sql
    ```
 
 6. **Access the dashboard**
    - Dashboard: http://localhost:3000
    - Evolution API: http://localhost:8080
+   - **Default Login**: admin@whatsapp-dashboard.local / admin123
+
+   **IMPORTANT**: Change the default admin password immediately after first login!
 
 ### Option 2: Development Mode
 
@@ -128,6 +146,10 @@ REDIS_URL=redis://localhost:6379
 # Application Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 WEBHOOK_SECRET=your-webhook-secret-here
+
+# Authentication (NextAuth.js)
+NEXTAUTH_SECRET=your-nextauth-secret-here-generate-with-openssl-rand-base64-32
+NEXTAUTH_URL=http://localhost:3000
 ```
 
 ## Project Structure
@@ -193,6 +215,75 @@ The dashboard home shows:
 - Contact and group statistics
 - Recent activity feed
 - Connection status
+
+### User Management
+
+#### Default Roles & Permissions
+
+The system includes 5 predefined roles with different permission levels:
+
+| Role | Description | Key Permissions |
+|------|-------------|----------------|
+| **Super Admin** | Full system access | All permissions |
+| **Admin** | Most permissions except user deletion | Create/update users, manage instances, all operations |
+| **Manager** | Instance and operational management | Manage instances, send messages, view analytics |
+| **Operator** | Day-to-day operations | Send messages, view data, update contacts/groups |
+| **Viewer** | Read-only access | View-only permissions across all resources |
+
+#### Creating Users
+
+1. Navigate to **Users** page (requires `users.read` permission)
+2. Click **Add User** button
+3. Fill in user details:
+   - Email address
+   - Full name
+   - Password
+   - Assign a role
+4. Click **Create User**
+
+#### Managing Users
+
+- **Edit User**: Update name, role, or password
+- **Disable User**: Temporarily disable account (prevents login)
+- **Enable User**: Re-enable a disabled account
+- **Delete User**: Permanently remove user (requires `users.delete` permission)
+
+#### Permission System
+
+Permissions follow the format: `resource.action`
+
+**Available Resources:**
+- `users` - User management
+- `instances` - WhatsApp instances
+- `messages` - Message operations
+- `contacts` - Contact management
+- `groups` - Group management
+- `webhooks` - Webhook configuration
+- `settings` - System settings
+- `analytics` - Reports and analytics
+
+**Available Actions:**
+- `create` - Create new resources
+- `read` - View/list resources
+- `update` - Modify existing resources
+- `delete` - Remove resources
+- `manage` - Full control over resource
+- `send` - Send messages (messages only)
+
+#### First Login
+
+1. Access http://localhost:3000
+2. Use default credentials:
+   - **Email**: admin@whatsapp-dashboard.local
+   - **Password**: admin123
+3. **IMPORTANT**: Change the default password immediately!
+
+#### Changing Password
+
+1. Navigate to **Users** page
+2. Click **Edit** on your user account
+3. Enter a new password
+4. Click **Update User**
 
 ## API Integration
 
