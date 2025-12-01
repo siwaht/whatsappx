@@ -19,6 +19,7 @@ import { MoreVertical, Power, RefreshCw, Trash, QrCode } from "lucide-react";
 import { useInstancesStore } from "@/lib/store/instances";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { ConnectInstanceModal } from "./ConnectInstanceModal";
 
 interface InstanceCardProps {
     instance: {
@@ -32,35 +33,11 @@ interface InstanceCardProps {
 export const InstanceCard = ({ instance }: InstanceCardProps) => {
     const { removeInstance, updateInstance } = useInstancesStore();
     const [loading, setLoading] = useState(false);
+    const [showConnectModal, setShowConnectModal] = useState(false);
     const { toast } = useToast();
 
-    const handleConnect = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`/api/instances/${instance.instanceName}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'connect' }),
-            });
-
-            if (!response.ok) throw new Error('Failed to connect instance');
-
-            const data = await response.json();
-            updateInstance(instance.instanceName, { status: 'connecting' });
-
-            toast({
-                title: "Instance connecting",
-                description: "Scan the QR code in the Evolution API",
-            });
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error instanceof Error ? error.message : "Failed to connect instance",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
+    const handleConnect = () => {
+        setShowConnectModal(true);
     };
 
     const handleDisconnect = async () => {
@@ -146,62 +123,70 @@ export const InstanceCard = ({ instance }: InstanceCardProps) => {
     };
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-bold">
-                    {instance.instanceName}
-                </CardTitle>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={loading}>
-                            <span className="sr-only">Open menu</span>
-                            <MoreVertical className="h-4 w-4" />
+        <>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-bold">
+                        {instance.instanceName}
+                    </CardTitle>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" disabled={loading}>
+                                <span className="sr-only">Open menu</span>
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={handleRestart}>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Restart
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
+                                <Trash className="mr-2 h-4 w-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center space-x-4 py-4">
+                        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-xl font-bold text-gray-500">
+                                {instance.instanceName.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium leading-none">
+                                {instance.profileName || "Unknown Profile"}
+                            </p>
+                            <Badge
+                                variant={instance.status === "open" ? "default" : "destructive"}
+                            >
+                                {instance.status}
+                            </Badge>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    {instance.status !== "open" ? (
+                        <Button className="w-full" onClick={handleConnect} disabled={loading}>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            Connect
                         </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleRestart}>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Restart
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center space-x-4 py-4">
-                    <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-xl font-bold text-gray-500">
-                            {instance.instanceName.charAt(0).toUpperCase()}
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                            {instance.profileName || "Unknown Profile"}
-                        </p>
-                        <Badge
-                            variant={instance.status === "open" ? "default" : "destructive"}
-                        >
-                            {instance.status}
-                        </Badge>
-                    </div>
-                </div>
-            </CardContent>
-            <CardFooter>
-                {instance.status === "close" ? (
-                    <Button className="w-full" onClick={handleConnect} disabled={loading}>
-                        <QrCode className="mr-2 h-4 w-4" />
-                        {loading ? "Connecting..." : "Connect"}
-                    </Button>
-                ) : (
-                    <Button variant="outline" className="w-full" onClick={handleDisconnect} disabled={loading}>
-                        <Power className="mr-2 h-4 w-4" />
-                        {loading ? "Disconnecting..." : "Disconnect"}
-                    </Button>
-                )}
-            </CardFooter>
-        </Card>
+                    ) : (
+                        <Button variant="outline" className="w-full" onClick={handleDisconnect} disabled={loading}>
+                            <Power className="mr-2 h-4 w-4" />
+                            {loading ? "Disconnecting..." : "Disconnect"}
+                        </Button>
+                    )}
+                </CardFooter>
+            </Card>
+
+            <ConnectInstanceModal
+                isOpen={showConnectModal}
+                onClose={() => setShowConnectModal(false)}
+                instanceName={instance.instanceName}
+            />
+        </>
     );
 };

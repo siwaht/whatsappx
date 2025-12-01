@@ -140,12 +140,12 @@ export const Sidebar = () => {
             <div className="px-3 py-2 flex-1 overflow-y-auto">
                 <Link href="/" className="flex items-center pl-3 mb-10">
                     <div className="relative w-8 h-8 mr-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg">
                             <MessageCircle className="h-5 w-5 text-white" />
                         </div>
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-white">CrunchzApp</h1>
+                        <h1 className="text-xl font-bold text-white">WhatsAppX</h1>
                     </div>
                 </Link>
 
@@ -158,7 +158,7 @@ export const Sidebar = () => {
             <div className="px-3 py-2 border-t border-slate-800 bg-[#0B1120]">
                 {session?.user && (
                     <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm font-medium">
                             {session.user.name?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <div className="flex-1 min-w-0">
