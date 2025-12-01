@@ -19,11 +19,10 @@ export async function GET(request: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        roles: user.roles,
+        name: user.name,
+        role: user.role,
         permissions: user.permissions,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
