@@ -1,0 +1,15 @@
+modules = ["nodejs-20", "web"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+NEXTAUTH_SECRET = "mJc1nwO9BAEdl/Y6MwEcs0FLepAIMRn3vCGCmeZ2Ado="
+EVOLUTION_API_URL = "http://localhost:8080"
+EVOLUTION_API_KEY = "change-this-api-key"
+NODE_ENV = "development"
+NEXTAUTH_URL = "https://workspace.mediumreach2025.repl.co"
