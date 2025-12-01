@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -150,61 +151,66 @@ export const InstanceCard = ({ instance }: InstanceCardProps) => {
 
     return (
         <>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-lg font-bold">
+            <Card className="glass-card border-0 overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
                         {instance.instanceName}
                     </CardTitle>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" disabled={loading}>
+                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-black/5 dark:hover:bg-white/10" disabled={loading}>
                                 <span className="sr-only">Open menu</span>
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={handleRestart}>
+                        <DropdownMenuContent align="end" className="glass border-white/20">
+                            <DropdownMenuItem onClick={handleRestart} className="cursor-pointer">
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Restart
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleLinkAgent(1)}>
+                            <DropdownMenuItem onClick={() => handleLinkAgent(1)} className="cursor-pointer">
                                 <Bot className="mr-2 h-4 w-4" />
                                 Link Default Agent (ID: 1)
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
+                            <DropdownMenuItem className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-100/50" onClick={handleDelete}>
                                 <Trash className="mr-2 h-4 w-4" />
                                 Delete
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative z-10">
                     <div className="flex items-center space-x-4 py-4">
-                        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                            <span className="text-xl font-bold text-gray-500">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center shadow-inner">
+                            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-gray-600 to-gray-400">
                                 {instance.instanceName.charAt(0).toUpperCase()}
                             </span>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                             <p className="text-sm font-medium leading-none">
                                 {instance.profileName || "Unknown Profile"}
                             </p>
                             <Badge
                                 variant={instance.status === "open" ? "default" : "destructive"}
+                                className={cn(
+                                    "capitalize shadow-sm",
+                                    instance.status === "open" ? "bg-emerald-500 hover:bg-emerald-600" : ""
+                                )}
                             >
                                 {instance.status}
                             </Badge>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="relative z-10">
                     {instance.status !== "open" ? (
-                        <Button className="w-full" onClick={handleConnect} disabled={loading}>
+                        <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:scale-[1.02]" onClick={handleConnect} disabled={loading}>
                             <QrCode className="mr-2 h-4 w-4" />
                             Connect
                         </Button>
                     ) : (
-                        <Button variant="outline" className="w-full" onClick={handleDisconnect} disabled={loading}>
+                        <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/30 dark:hover:bg-red-900/20" onClick={handleDisconnect} disabled={loading}>
                             <Power className="mr-2 h-4 w-4" />
                             {loading ? "Disconnecting..." : "Disconnect"}
                         </Button>

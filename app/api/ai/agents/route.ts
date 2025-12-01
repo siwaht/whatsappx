@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const userId = parseInt(session.user.id);
         const agents = await prisma.aIAgent.findMany({
-            where: { userId: session.user.id },
+            where: { userId },
             orderBy: { updatedAt: 'desc' },
         });
 
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
                 model: model || 'gpt-4o',
                 temperature: temperature || 0.7,
                 isActive: isActive !== undefined ? isActive : true,
-                userId: session.user.id,
+                userId: parseInt(session.user.id),
             },
         });
 

@@ -115,16 +115,16 @@ export const Sidebar = () => {
                             key={route.href}
                             href={route.href}
                             className={cn(
-                                "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:bg-slate-800 rounded-lg transition",
+                                "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer rounded-xl transition-all duration-200",
                                 pathname === route.href
-                                    ? "bg-slate-800 text-white"
-                                    : "text-slate-400 hover:text-white"
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border"
+                                    : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 hover:translate-x-1"
                             )}
                         >
                             <div className="flex items-center flex-1">
                                 <route.icon className={cn(
-                                    "h-5 w-5 mr-3",
-                                    pathname === route.href ? route.color : ""
+                                    "h-5 w-5 mr-3 transition-colors",
+                                    pathname === route.href ? route.color : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground"
                                 )} />
                                 {route.label}
                             </div>
@@ -136,16 +136,19 @@ export const Sidebar = () => {
     };
 
     return (
-        <div className="space-y-4 py-4 flex flex-col h-full bg-[#0B1120] text-slate-100 border-r border-slate-800">
-            <div className="px-3 py-2 flex-1 overflow-y-auto">
-                <Link href="/" className="flex items-center pl-3 mb-10">
-                    <div className="relative w-8 h-8 mr-3">
-                        <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center shadow-lg">
-                            <MessageCircle className="h-5 w-5 text-white" />
+        <div className="space-y-4 py-4 flex flex-col h-full bg-sidebar/95 backdrop-blur-xl text-sidebar-foreground border-r border-sidebar-border shadow-2xl">
+            <div className="px-3 py-2 flex-1 overflow-y-auto custom-scrollbar">
+                <Link href="/" className="flex items-center pl-3 mb-10 group">
+                    <div className="relative w-10 h-10 mr-3 transition-transform duration-300 group-hover:scale-110">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+                        <div className="relative w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-xl border border-white/10">
+                            <MessageCircle className="h-6 w-6 text-white" />
                         </div>
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-white">WhatsAppX</h1>
+                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+                            WhatsAppX
+                        </h1>
                     </div>
                 </Link>
 
@@ -155,17 +158,17 @@ export const Sidebar = () => {
                 {renderNavSection("MISCELLANEOUS", routes.filter(r => r.section === "MISCELLANEOUS"))}
 
             </div>
-            <div className="px-3 py-2 border-t border-slate-800 bg-[#0B1120]">
+            <div className="px-3 py-2 border-t border-sidebar-border bg-sidebar/50 backdrop-blur-md">
                 {session?.user && (
-                    <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm font-medium">
+                    <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors cursor-pointer group">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-medium shadow-lg ring-2 ring-transparent group-hover:ring-emerald-500/30 transition-all">
                             {session.user.name?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">
+                            <p className="text-sm font-medium text-sidebar-foreground truncate">
                                 {session.user.name || 'User'}
                             </p>
-                            <p className="text-xs text-slate-400 truncate">
+                            <p className="text-xs text-sidebar-foreground/60 truncate">
                                 {session.user.role || 'Member'}
                             </p>
                         </div>
@@ -173,7 +176,7 @@ export const Sidebar = () => {
                 )}
                 <Button
                     variant="ghost"
-                    className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800"
+                    className="w-full justify-start text-sidebar-foreground/70 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
                     onClick={handleLogout}
                 >
                     <LogOut className="h-5 w-5 mr-3" />

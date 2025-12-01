@@ -19,9 +19,40 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Handle messages.upsert event for AI processing
+    // Handle messages.upsert event for AI processing and stats
     if (eventType === 'messages.upsert') {
       const message = body.data;
+
+      // Save message stat
+      if (message.message) {
+        await prisma.messageStat.create({
+          data: {
+            instanceName,
+            remoteJid: message.key.remoteJid,
+            direction: message.key.fromMe ? 'SEND' : 'RECEIVE',
+            messageType: Object.keys(message.message)[0] || 'unknown',
+            status: 'DELIVERED', // Default status for upsert
+          }
+        });
+
+        // Cache contact info if not from me
+        if (!message.key.fromMe) {
+          await prisma.contactCache.upsert({
+            where: { remoteJid: message.key.remoteJid },
+            update: {
+              pushName: message.pushName || undefined,
+              instanceName, // Update instance name to latest interaction
+              updatedAt: new Date(),
+            },
+            create: {
+              instanceName,
+              remoteJid: message.key.remoteJid,
+              pushName: message.pushName,
+              isGroup: message.key.remoteJid.endsWith('@g.us'),
+            }
+          });
+        }
+      }
 
       // Ignore messages sent by the bot itself or status updates
       if (!message.key.fromMe && message.message) {
@@ -55,6 +86,17 @@ export async function POST(request: NextRequest) {
                 text: aiResponse,
                 delay: 1200,
                 linkPreview: true
+              });
+
+              // Log the AI response as a sent message stat
+              await prisma.messageStat.create({
+                data: {
+                  instanceName,
+                  remoteJid,
+                  direction: 'SEND',
+                  messageType: 'conversation',
+                  status: 'SENT',
+                }
               });
             }
           }

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { instanceName: string } }
+    { params }: { params: Promise<{ instanceName: string }> }
 ) {
     try {
         const session = await auth();
@@ -12,7 +12,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { instanceName } = params;
+        const { instanceName } = await params;
         const body = await request.json();
         const { aiAgentId } = body;
 
@@ -21,7 +21,7 @@ export async function POST(
             update: { aiAgentId },
             create: {
                 instanceName,
-                userId: session.user.id,
+                userId: parseInt(session.user.id),
                 aiAgentId,
             },
         });
@@ -38,7 +38,7 @@ export async function POST(
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { instanceName: string } }
+    { params }: { params: Promise<{ instanceName: string }> }
 ) {
     try {
         const session = await auth();
@@ -46,7 +46,7 @@ export async function GET(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { instanceName } = params;
+        const { instanceName } = await params;
 
         const config = await prisma.instanceConfig.findUnique({
             where: { instanceName },
