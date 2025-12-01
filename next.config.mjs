@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Standalone output for Replit deployment
+  output: 'standalone',
+  
   // Security headers
   async headers() {
     return [
@@ -53,6 +56,9 @@ const nextConfig = {
   // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
+    serverActions: {
+      allowedOrigins: ['*'],
+    },
   },
   
   // Production optimizations

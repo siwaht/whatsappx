@@ -13,7 +13,7 @@ async function getUserWithPermissions(email: string) {
   const client = await pool.connect();
   try {
     const userResult = await client.query(
-      `SELECT u.id, u.email, u.name, u.password_hash as password, u.is_active
+      `SELECT u.id, u.email, u.username, u.password, u.first_name, u.last_name, u.is_active
        FROM users u
        WHERE u.email = $1 AND u.is_active = TRUE`,
       [email]
@@ -25,11 +25,12 @@ async function getUserWithPermissions(email: string) {
 
     const user = userResult.rows[0];
 
-    // Fetch user role and permissions
+    // Fetch user role and permissions through user_roles join table
     const permissionsResult = await client.query(
       `SELECT DISTINCT r.name as role_name, p.name as permission_name
        FROM users u
-       JOIN roles r ON u.role_id = r.id
+       JOIN user_roles ur ON u.id = ur.user_id
+       JOIN roles r ON ur.role_id = r.id
        JOIN role_permissions rp ON r.id = rp.role_id
        JOIN permissions p ON rp.permission_id = p.id
        WHERE u.email = $1 AND u.is_active = TRUE`,
@@ -39,10 +40,15 @@ async function getUserWithPermissions(email: string) {
     const permissions = permissionsResult.rows.map((row) => row.permission_name);
     const role = permissionsResult.rows.length > 0 ? permissionsResult.rows[0].role_name : null;
 
+    // Build display name from first_name + last_name, fallback to username
+    const displayName = user.first_name && user.last_name 
+      ? `${user.first_name} ${user.last_name}` 
+      : user.username;
+
     return {
       id: user.id.toString(),
       email: user.email,
-      name: user.name || user.email.split('@')[0],
+      name: displayName,
       role,
       permissions,
       isActive: user.is_active,
@@ -58,7 +64,7 @@ async function updateLastLogin(userId: string) {
   const client = await pool.connect();
   try {
     await client.query(
-      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      'UPDATE users SET last_login_at = NOW() WHERE id = $1',
       [userId]
     );
   } finally {
