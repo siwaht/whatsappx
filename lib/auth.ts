@@ -81,32 +81,37 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
+          const user = await getUserWithPermissions(credentials.email as string);
+
+          if (!user) {
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password as string,
+            user.passwordHash
+          );
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          // Update last login
+          await updateLastLogin(user.id);
+
+          // Remove password hash from response
+          const { passwordHash, ...userWithoutPassword } = user;
+
+          return userWithoutPassword;
+        } catch (error) {
+          console.error('Auth error:', error);
           return null;
         }
-
-        const user = await getUserWithPermissions(credentials.email as string);
-
-        if (!user) {
-          return null;
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        // Update last login
-        await updateLastLogin(user.id);
-
-        // Remove password hash from response
-        const { passwordHash, ...userWithoutPassword } = user;
-
-        return userWithoutPassword;
       },
     }),
   ],
