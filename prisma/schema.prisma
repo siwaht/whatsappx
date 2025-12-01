@@ -51,37 +51,6 @@ model ContactCache {
 model User {
   id            Int       @id @default(autoincrement())
   email         String    @unique
-  username      String    @unique
-  password      String
-  firstName     String?   @map("first_name")
-  lastName      String?   @map("last_name")
-  isActive      Boolean   @default(true) @map("is_active")
-  lastLoginAt   DateTime? @map("last_login_at")
-  failedLogins  Int       @default(0) @map("failed_logins")
-  lockedUntil   DateTime? @map("locked_until")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  createdById   Int?      @map("created_by_id")
-  createdBy     User?     @relation("UserCreatedBy", fields: [createdById], references: [id])
-  createdUsers  User[]    @relation("UserCreatedBy")
-  assignedRoles UserRole[] @relation("UserAssignedRole")
-  userRoles     UserRole[]
-  sessions      Session[]
-  auditLogs     AuditLog[]
-  subscription  Subscription?
-  broadcasts    Broadcast[]
-
-  @@index([email])
-  @@index([username])
-  @@index([isActive])
-  @@index([createdAt])
-  @@map("users")
-}
-
-model Role {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  description String?
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   userRoles   UserRole[]
