@@ -68,6 +68,8 @@ model User {
   userRoles     UserRole[]
   sessions      Session[]
   auditLogs     AuditLog[]
+  subscription  Subscription?
+  broadcasts    Broadcast[]
 
   @@index([email])
   @@index([username])
@@ -170,4 +172,62 @@ model RateLimitEntry {
   @@index([key])
   @@index([windowStart])
   @@map("rate_limit_entries")
+}
+
+model Subscription {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @unique @map("user_id")
+  stripeCustomerId String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId String? @unique @map("stripe_subscription_id")
+  stripePriceId    String?   @map("stripe_price_id")
+  status           String    @default("inactive") // active, past_due, canceled, incomplete, incomplete_expired, trialing, unpaid, paused
+  currentPeriodEnd DateTime? @map("current_period_end")
+  planName         String?   @map("plan_name")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Broadcast {
+  id           Int            @id @default(autoincrement())
+  userId       Int            @map("user_id")
+  instanceName String         @map("instance_name")
+  name         String
+  message      String         @db.Text
+  mediaUrl     String?        @map("media_url")
+  mediaType    String?        @map("media_type") // image, video, document, audio
+  status       String         @default("draft") // draft, scheduled, processing, completed, failed
+  scheduledAt  DateTime?      @map("scheduled_at")
+  startedAt    DateTime?      @map("started_at")
+  completedAt  DateTime?      @map("completed_at")
+  totalRecipients Int         @default(0) @map("total_recipients")
+  successCount Int            @default(0) @map("success_count")
+  failedCount  Int            @default(0) @map("failed_count")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs         BroadcastLog[]
+
+  @@index([userId])
+  @@index([instanceName])
+  @@index([status])
+  @@map("broadcasts")
+}
+
+model BroadcastLog {
+  id          Int       @id @default(autoincrement())
+  broadcastId Int       @map("broadcast_id")
+  recipient   String
+  status      String    @default("pending") // pending, sent, failed
+  error       String?
+  sentAt      DateTime? @map("sent_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@index([broadcastId])
+  @@index([recipient])
+  @@index([status])
+  @@map("broadcast_logs")
 }

@@ -44,8 +44,8 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.99 0 0);
+  --radius: 0.75rem;
+  --background: oklch(0.98 0.01 240);
   --foreground: oklch(0.13 0.02 260);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.13 0.02 260);
@@ -123,6 +123,18 @@
 }
 
 @layer utilities {
+  .glass {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
+  }
+
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-md border border-border/50 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500;
+  }
+
   .animate-in-fade {
     animation: fadeIn 0.5s ease-out forwards;
   }
