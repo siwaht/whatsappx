@@ -1,11 +1,25 @@
-import { auth } from '@/lib/auth';
+import { edgeAuth } from '@/lib/auth-edge';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+
+// Extend NextRequest locally with the auth property injected by NextAuth middleware
+interface NextRequestWithAuth extends NextRequest {
+  auth?: {
+    user?: {
+      id: string;
+      email: string;
+      name: string | null;
+      role: string | null;
+      permissions: string[];
+      isActive: boolean;
+    };
+  } | null;
+}
 
 // Define public routes that don't require authentication
 const publicRoutes = ['/login'];
 
-export async function middleware(request: NextRequest) {
+export const middleware = edgeAuth(async (request: NextRequestWithAuth) => {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
@@ -18,8 +32,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check authentication
-  const session = await auth();
+  // Use the session injected by edgeAuth
+  const session = request.auth;
 
   if (!session?.user) {
     // Redirect to login if not authenticated
@@ -36,7 +50,7 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
@@ -50,5 +64,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
-
 
