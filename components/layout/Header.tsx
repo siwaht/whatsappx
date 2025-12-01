@@ -3,11 +3,11 @@ import { UserMenu } from "@/components/layout/UserMenu";
 
 export const Header = () => {
     return (
-        <div className="flex items-center p-4">
+        <header className="sticky top-0 z-50 flex items-center border-b border-border/40 bg-background/95 p-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
             <MobileSidebar />
             <div className="flex w-full justify-end">
                 <UserMenu />
             </div>
-        </div>
+        </header>
     );
 };
