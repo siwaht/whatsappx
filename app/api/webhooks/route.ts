@@ -7,15 +7,60 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const instanceName = body.instance || 'unknown';
+    const eventType = body.event || 'unknown';
 
     // Store webhook event in database
     await prisma.webhookEvent.create({
       data: {
-        instanceName: body.instance || 'unknown',
-        eventType: body.event || 'unknown',
+        instanceName,
+        eventType,
         payload: body,
       }
     });
+
+    // Handle messages.upsert event for AI processing
+    if (eventType === 'messages.upsert') {
+      const message = body.data;
+
+      // Ignore messages sent by the bot itself or status updates
+      if (!message.key.fromMe && message.message) {
+        const remoteJid = message.key.remoteJid;
+        const textMessage = message.message.conversation ||
+          message.message.extendedTextMessage?.text ||
+          null;
+
+        if (textMessage) {
+          // Check if instance has an active AI agent linked
+          const config = await prisma.instanceConfig.findUnique({
+            where: { instanceName },
+            include: { aiAgent: true },
+          });
+
+          if (config?.aiAgent && config.aiAgent.isActive) {
+            const { getAIClient } = await import('@/lib/ai');
+            const aiClient = getAIClient();
+
+            const aiResponse = await aiClient.generateCompletion(
+              config.aiAgent.systemPrompt,
+              textMessage,
+              config.aiAgent.model,
+              config.aiAgent.temperature
+            );
+
+            if (aiResponse) {
+              const api = getEvolutionAPI();
+              await api.sendText(instanceName, {
+                number: remoteJid.replace('@s.whatsapp.net', ''),
+                text: aiResponse,
+                delay: 1200,
+                linkPreview: true
+              });
+            }
+          }
+        }
+      }
+    }
 
     return NextResponse.json({ message: 'Webhook received' }, { status: 200 });
   } catch (error: any) {

@@ -15,7 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Power, RefreshCw, Trash, QrCode } from "lucide-react";
+import { MoreVertical, Power, RefreshCw, Trash, QrCode, Bot } from "lucide-react";
 import { useInstancesStore } from "@/lib/store/instances";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -122,6 +122,32 @@ export const InstanceCard = ({ instance }: InstanceCardProps) => {
         }
     };
 
+    const handleLinkAgent = async (agentId: number) => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/instances/${instance.instanceName}/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aiAgentId: agentId }),
+            });
+
+            if (!response.ok) throw new Error('Failed to link AI agent');
+
+            toast({
+                title: "Success",
+                description: "AI Agent linked successfully",
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to link AI agent",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <>
             <Card>
@@ -140,6 +166,10 @@ export const InstanceCard = ({ instance }: InstanceCardProps) => {
                             <DropdownMenuItem onClick={handleRestart}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Restart
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleLinkAgent(1)}>
+                                <Bot className="mr-2 h-4 w-4" />
+                                Link Default Agent (ID: 1)
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
                                 <Trash className="mr-2 h-4 w-4" />

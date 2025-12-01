@@ -215,6 +215,7 @@ export interface SendTextDto {
   quoted?: MessageKey;
   mentionsEveryOne?: boolean;
   mentioned?: string[];
+  linkPreview?: boolean;
 }
 
 export interface SendMediaDto {

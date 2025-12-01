@@ -72,6 +72,8 @@ model User {
   auditLogs     AuditLog[]
   subscription  Subscription?
   broadcasts    Broadcast[]
+  aiAgents      AIAgent[]
+  instanceConfigs InstanceConfig[]
 
   @@index([email])
   @@index([username])
@@ -232,4 +234,37 @@ model BroadcastLog {
   @@index([recipient])
   @@index([status])
   @@map("broadcast_logs")
+}
+
+model AIAgent {
+  id           Int      @id @default(autoincrement())
+  name         String
+  systemPrompt String   @map("system_prompt") @db.Text
+  model        String   @default("gpt-4o")
+  temperature  Float    @default(0.7)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  userId       Int      @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instanceConfigs InstanceConfig[]
+
+  @@index([userId])
+  @@map("ai_agents")
+}
+
+model InstanceConfig {
+  id           Int      @id @default(autoincrement())
+  instanceName String   @unique @map("instance_name")
+  userId       Int      @map("user_id")
+  aiAgentId    Int?     @map("ai_agent_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiAgent      AIAgent? @relation(fields: [aiAgentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([instanceName])
+  @@map("instance_configs")
 }
