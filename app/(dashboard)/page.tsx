@@ -17,20 +17,45 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
-    const session = await auth();
+    let session;
+    try {
+        session = await auth();
+    } catch (e) {
+        console.error("Auth error:", e);
+        return null; // Or redirect to login
+    }
+
     if (!session?.user) return null;
 
     const userName = session.user.name || "User";
     const firstName = userName.split(" ")[0];
 
-    // Fetch real stats
-    const [
-        totalContacts,
-        instances
-    ] = await Promise.all([
-        prisma.contactCache.count(),
-        getEvolutionAPI().fetchInstances().catch(() => [])
-    ]);
+    // Fetch real stats with error handling
+    let totalContacts = 0;
+    let instances: any[] = [];
+
+    try {
+        // Run independently to prevent one failure from blocking the other
+        const results = await Promise.allSettled([
+            prisma.contactCache.count(),
+            getEvolutionAPI().fetchInstances()
+        ]);
+
+        if (results[0].status === 'fulfilled') {
+            totalContacts = results[0].value;
+        } else {
+            console.error("Failed to fetch contacts count:", results[0].reason);
+        }
+
+        if (results[1].status === 'fulfilled') {
+            instances = results[1].value;
+        } else {
+            console.error("Failed to fetch instances:", results[1].reason);
+        }
+
+    } catch (error) {
+        console.error("Dashboard data fetch error:", error);
+    }
 
     const activeInstances = Array.isArray(instances) ? instances.filter((i: any) => i.status === 'open').length : 0;
     const totalInstances = Array.isArray(instances) ? instances.length : 0;
