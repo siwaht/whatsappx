@@ -87,6 +87,13 @@ const routes = [
         color: "text-purple-500",
         section: "MISCELLANEOUS"
     },
+    {
+        label: "Users",
+        icon: Shield,
+        href: "/admin/users",
+        color: "text-red-500",
+        section: "ADMIN"
+    },
 ];
 
 export const Sidebar = () => {
@@ -156,6 +163,7 @@ export const Sidebar = () => {
                 {renderNavSection("PLAYGROUND", routes.filter(r => r.section === "PLAYGROUND"))}
                 {renderNavSection("MESSAGES", routes.filter(r => r.section === "MESSAGES"))}
                 {renderNavSection("MISCELLANEOUS", routes.filter(r => r.section === "MISCELLANEOUS"))}
+                {renderNavSection("ADMIN", routes.filter(r => r.section === "ADMIN"))}
 
             </div>
             <div className="px-3 py-2 border-t border-sidebar-border bg-sidebar/50 backdrop-blur-md">

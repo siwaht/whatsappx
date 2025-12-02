@@ -51,7 +51,7 @@ export default async function DashboardPage() {
 
         // Run independently to prevent one failure from blocking the other
         const results = await Promise.allSettled([
-            prisma.contactCache.count(),
+            prisma.contact.count(),
             api.fetchInstances()
         ]);
 
