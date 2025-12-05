@@ -3,16 +3,10 @@ import { auth } from '@/lib/auth';
 import { getEvolutionAPI, EvolutionAPIClient } from '@/lib/evolution-api';
 import { prisma } from '@/lib/prisma';
 
-async function getClient(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) },
-    select: { evolutionApiUrl: true, evolutionApiKey: true }
-  });
+import { getEvolutionClientForUser } from '@/lib/evolution-client';
 
-  if (user?.evolutionApiUrl && user?.evolutionApiKey) {
-    return new EvolutionAPIClient(user.evolutionApiUrl, user.evolutionApiKey);
-  }
-  return getEvolutionAPI();
+async function getClient(userId: string) {
+  return getEvolutionClientForUser(parseInt(userId));
 }
 
 export async function GET(request: NextRequest) {

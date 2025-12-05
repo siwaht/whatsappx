@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getEvolutionAPI } from '@/lib/evolution-api';
+import { getEvolutionClientForInstance, getEvolutionClientForUser } from '@/lib/evolution-client';
 import { prisma } from '@/lib/prisma';
 
 // POST /api/webhooks - Receive webhook events (no auth required)
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
             );
 
             if (aiResponse) {
-              const api = getEvolutionAPI();
+              const api = await getEvolutionClientForInstance(instanceName);
               await api.sendText(instanceName, {
                 number: remoteJid.replace('@s.whatsapp.net', ''),
                 text: aiResponse,
@@ -226,7 +227,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const api = getEvolutionAPI();
+    const api = await getEvolutionClientForUser(parseInt(session.user.id));
     const config = await api.getWebhook(instanceName);
 
     return NextResponse.json(config);
@@ -261,7 +262,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const api = getEvolutionAPI();
+    const api = await getEvolutionClientForUser(parseInt(session.user.id));
     await api.setWebhook(instanceName, {
       enabled,
       url,

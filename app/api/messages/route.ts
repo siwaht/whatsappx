@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getEvolutionAPI } from '@/lib/evolution-api';
+import { getEvolutionClientForUser } from '@/lib/evolution-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { instanceName, remoteJid, content, conversationId } = body;
 
-    const api = getEvolutionAPI();
+    const api = await getEvolutionClientForUser(parseInt(session.user.id));
     const result = await api.sendText(instanceName, {
       number: remoteJid.replace('@s.whatsapp.net', ''),
       text: content,

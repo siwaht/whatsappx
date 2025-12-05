@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getEvolutionAPI } from '@/lib/evolution-api';
+import { getEvolutionClientForUser } from '@/lib/evolution-client';
 
 export async function GET(request: NextRequest) {
     try {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 
         // Process recipients (simple loop for now, should be a queue in production)
         const recipientList = recipients.split(',').map((r: string) => r.trim());
-        const api = getEvolutionAPI();
+        const api = await getEvolutionClientForUser(parseInt(session.user.id));
 
         // Run in background (fire and forget for this simple implementation)
         (async () => {

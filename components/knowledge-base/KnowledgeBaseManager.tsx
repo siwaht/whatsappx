@@ -1,0 +1,235 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Database, Play, Key } from "lucide-react";
+import axios from "axios";
+
+interface Connection {
+    id: string;
+    platform: string;
+    key: string;
+    name?: string;
+}
+
+interface Action {
+    title: string;
+    key: string;
+    method: string;
+    description?: string;
+}
+
+export const KnowledgeBaseManager = () => {
+    const [picaKey, setPicaKey] = useState("");
+    const [connections, setConnections] = useState<Connection[]>([]);
+    const [selectedConnection, setSelectedConnection] = useState<string>("");
+    const [actions, setActions] = useState<Action[]>([]);
+    const [selectedAction, setSelectedAction] = useState<string>("");
+    const [params, setParams] = useState("{}");
+    const [result, setResult] = useState<string>("");
+    const [loading, setLoading] = useState(false);
+    const [loadingActions, setLoadingActions] = useState(false);
+
+    const { toast } = useToast();
+
+    const fetchConnections = async () => {
+        setLoading(true);
+        try {
+            const headers = picaKey ? { 'x-pica-secret': picaKey } : {};
+            const res = await axios.get('/api/pica/connections', { headers });
+            setConnections(res.data);
+            if (res.data.length === 0) {
+                toast({
+                    title: "No Vector DB Connections Found",
+                    description: "Make sure you have connected a vector database (MongoDB, Supabase, Weaviate, etc.) in PicaOS.",
+                    variant: "destructive"
+                });
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error fetching connections",
+                description: error.response?.data?.error || error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedConnection) {
+            const connection = connections.find(c => c.key === selectedConnection);
+            if (connection) {
+                fetchActions(connection.platform);
+            }
+        }
+    }, [selectedConnection]);
+
+    const fetchActions = async (platform: string) => {
+        setLoadingActions(true);
+        try {
+            const headers = picaKey ? { 'x-pica-secret': picaKey } : {};
+            const res = await axios.get(`/api/pica/actions?platform=${platform}`, { headers });
+            setActions(res.data);
+        } catch (error: any) {
+            toast({
+                title: "Error fetching actions",
+                description: error.response?.data?.error || error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setLoadingActions(false);
+        }
+    };
+
+    const handleExecute = async () => {
+        if (!selectedConnection || !selectedAction) return;
+
+        setLoading(true);
+        try {
+            let parsedParams = {};
+            try {
+                parsedParams = JSON.parse(params);
+            } catch (e) {
+                toast({
+                    title: "Invalid JSON",
+                    description: "Please check your parameters JSON format.",
+                    variant: "destructive"
+                });
+                setLoading(false);
+                return;
+            }
+
+            const headers = picaKey ? { 'x-pica-secret': picaKey } : {};
+            const res = await axios.post('/api/pica/execute', {
+                connectionKey: selectedConnection,
+                actionKey: selectedAction,
+                params: parsedParams
+            }, { headers });
+
+            setResult(JSON.stringify(res.data, null, 2));
+            toast({
+                title: "Action Executed",
+                description: "Operation completed successfully.",
+            });
+        } catch (error: any) {
+            setResult(JSON.stringify(error.response?.data || error.message, null, 2));
+            toast({
+                title: "Execution Failed",
+                description: error.response?.data?.error || error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Key className="h-5 w-5" />
+                        Configuration
+                    </CardTitle>
+                    <CardDescription>
+                        Enter your PicaOS Secret Key if it's not set in the environment variables.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex gap-4">
+                    <div className="flex-1">
+                        <Label htmlFor="pica-key">Pica Secret Key</Label>
+                        <Input
+                            id="pica-key"
+                            type="password"
+                            placeholder="sk_..."
+                            value={picaKey}
+                            onChange={(e) => setPicaKey(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <Button onClick={fetchConnections} disabled={loading}>
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                            Fetch Connections
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Operation</CardTitle>
+                        <CardDescription>Select a connection and action to perform.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Connection</Label>
+                            <Select value={selectedConnection} onValueChange={setSelectedConnection}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a vector DB..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {connections.map((c) => (
+                                        <SelectItem key={c.key} value={c.key}>
+                                            {c.name || c.platform} ({c.platform})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Action</Label>
+                            <Select value={selectedAction} onValueChange={setSelectedAction} disabled={!selectedConnection || loadingActions}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={loadingActions ? "Loading actions..." : "Select an action..."} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {actions.map((a) => (
+                                        <SelectItem key={a.key} value={a.key}>
+                                            {a.title}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Parameters (JSON)</Label>
+                            <Textarea
+                                className="font-mono text-sm h-[200px]"
+                                placeholder='{ "collection": "my_collection", "document": { ... } }'
+                                value={params}
+                                onChange={(e) => setParams(e.target.value)}
+                            />
+                        </div>
+
+                        <Button className="w-full" onClick={handleExecute} disabled={loading || !selectedAction}>
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                            Execute
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card className="h-full flex flex-col">
+                    <CardHeader>
+                        <CardTitle>Result</CardTitle>
+                        <CardDescription>Output from the operation.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 min-h-[300px]">
+                        <div className="bg-slate-950 text-slate-50 p-4 rounded-md font-mono text-sm h-full overflow-auto whitespace-pre-wrap">
+                            {result || "// Result will appear here..."}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+};

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getEvolutionAPI } from '@/lib/evolution-api';
+import { getEvolutionClientForUser } from '@/lib/evolution-client';
 
 export async function GET(
     request: NextRequest,
@@ -23,7 +24,7 @@ export async function GET(
             );
         }
 
-        const api = getEvolutionAPI();
+        const api = await getEvolutionClientForUser(parseInt(session.user.id));
 
         const messages = await api.findMessages(instanceName, {
             remoteJid,

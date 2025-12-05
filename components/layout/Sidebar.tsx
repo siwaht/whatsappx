@@ -20,7 +20,8 @@ import {
     FileText,
     Share2,
     Radio,
-    Folder
+    Folder,
+    Database
 } from "lucide-react";
 
 const routes = [
@@ -43,6 +44,13 @@ const routes = [
         icon: Coffee,
         href: "/warmer",
         color: "text-orange-500",
+        section: "PLAYGROUND"
+    },
+    {
+        label: "Knowledge Base",
+        icon: Database,
+        href: "/knowledge-base",
+        color: "text-indigo-500",
         section: "PLAYGROUND"
     },
     {
