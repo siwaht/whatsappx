@@ -21,7 +21,8 @@ import {
     Share2,
     Radio,
     Folder,
-    Database
+    Database,
+    CreditCard
 } from "lucide-react";
 
 const routes = [
@@ -44,6 +45,13 @@ const routes = [
         icon: Coffee,
         href: "/warmer",
         color: "text-orange-500",
+        section: "PLAYGROUND"
+    },
+    {
+        label: "Stripe",
+        icon: CreditCard,
+        href: "/stripe",
+        color: "text-blue-600",
         section: "PLAYGROUND"
     },
     {
@@ -100,6 +108,20 @@ const routes = [
         icon: Shield,
         href: "/admin/users",
         color: "text-red-500",
+        section: "ADMIN"
+    },
+    {
+        label: "Roles",
+        icon: Shield,
+        href: "/admin/roles",
+        color: "text-indigo-500",
+        section: "ADMIN"
+    },
+    {
+        label: "Payments",
+        icon: CreditCard,
+        href: "/admin/payments",
+        color: "text-green-500",
         section: "ADMIN"
     },
 ];

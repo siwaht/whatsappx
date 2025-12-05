@@ -15,12 +15,7 @@ export async function GET(request: NextRequest) {
         const pica = getPicaClient(secretKey);
         const connections = await pica.listConnections();
 
-        // Filter for vector DBs if needed, or just return all
-        // Common vector DBs: mongodb, pinecone, weaviate, supabase, qdrant
-        const vectorPlatforms = ['mongodb', 'pinecone', 'weaviate', 'supabase', 'qdrant', 'chroma'];
-        const vectorConnections = connections.filter(c => vectorPlatforms.includes(c.platform));
-
-        return NextResponse.json(vectorConnections);
+        return NextResponse.json(connections);
     } catch (error: any) {
         return NextResponse.json(
             { error: error.message || 'Failed to list connections' },

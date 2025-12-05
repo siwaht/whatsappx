@@ -43,8 +43,10 @@ export const KnowledgeBaseManager = () => {
         try {
             const headers = picaKey ? { 'x-pica-secret': picaKey } : {};
             const res = await axios.get('/api/pica/connections', { headers });
-            setConnections(res.data);
-            if (res.data.length === 0) {
+            const vectorPlatforms = ['mongodb', 'pinecone', 'weaviate', 'supabase', 'qdrant', 'chroma'];
+            const vectorConnections = res.data.filter((c: Connection) => vectorPlatforms.includes(c.platform));
+            setConnections(vectorConnections);
+            if (vectorConnections.length === 0) {
                 toast({
                     title: "No Vector DB Connections Found",
                     description: "Make sure you have connected a vector database (MongoDB, Supabase, Weaviate, etc.) in PicaOS.",
