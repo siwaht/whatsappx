@@ -70,7 +70,7 @@ const routes = [
         section: "PLAYGROUND"
     },
     {
-        label: "CrunchChat",
+        label: "Chat",
         icon: MessageSquare,
         href: "/conversations",
         color: "text-pink-700",
@@ -104,32 +104,12 @@ const routes = [
         color: "text-blue-500",
         section: "MISCELLANEOUS"
     },
+
     {
-        label: "Affiliate",
-        icon: Share2,
-        href: "/affiliate",
-        color: "text-purple-500",
-        section: "MISCELLANEOUS"
-    },
-    {
-        label: "Users",
-        icon: Shield,
-        href: "/admin/users",
-        color: "text-red-500",
-        section: "ADMIN"
-    },
-    {
-        label: "Roles",
-        icon: Shield,
-        href: "/admin/roles",
-        color: "text-indigo-500",
-        section: "ADMIN"
-    },
-    {
-        label: "Payments",
-        icon: CreditCard,
-        href: "/admin/payments",
-        color: "text-green-500",
+        label: "Admin Settings",
+        icon: Settings,
+        href: "/admin",
+        color: "text-slate-500",
         section: "ADMIN"
     },
 ];
@@ -181,9 +161,9 @@ export const Sidebar = () => {
     };
 
     return (
-        <div className="space-y-4 py-4 flex flex-col h-full bg-sidebar/95 backdrop-blur-xl text-sidebar-foreground border-r border-sidebar-border shadow-2xl">
+        <div className="space-y-4 py-4 flex flex-col h-full glass text-sidebar-foreground border-r border-white/10 shadow-2xl transition-all duration-300">
             <div className="px-3 py-2 flex-1 overflow-y-auto custom-scrollbar">
-                <Link href="/" className="flex items-center pl-3 mb-10 group">
+                <Link href="/" className="flex items-center pl-3 mb-10 group animate-enter">
                     <div className="relative w-10 h-10 mr-3 transition-transform duration-300 group-hover:scale-110">
                         <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
                         <div className="relative w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-xl border border-white/10">

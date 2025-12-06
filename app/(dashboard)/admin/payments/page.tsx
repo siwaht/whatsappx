@@ -1,24 +1,27 @@
+"use client";
+
 import { PaymentTable } from "@/components/admin/PaymentTable";
-import { CreditCard } from "lucide-react";
-
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-    title: "Payment Management",
-    description: "View user subscriptions and payment history.",
-};
+import { StripeManager } from "@/components/stripe/StripeManager";
+import { Separator } from "@/components/ui/separator";
 
 export default function PaymentsPage() {
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6 animate-in-fade">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight font-heading flex items-center gap-2">
-                    <CreditCard className="h-8 w-8" />
-                    Payment Management
-                </h2>
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-medium">Stripe Actions</h3>
+                <p className="text-sm text-muted-foreground">
+                    Execute Stripe operations via PicaOS.
+                </p>
             </div>
-            <div className="text-muted-foreground">
-                Manage user subscriptions and view payment status.
+            <StripeManager />
+
+            <Separator className="my-6" />
+
+            <div>
+                <h3 className="text-lg font-medium">Payment History</h3>
+                <p className="text-sm text-muted-foreground">
+                    Recent transactions and subscriptions.
+                </p>
             </div>
             <PaymentTable />
         </div>

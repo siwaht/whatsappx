@@ -12,12 +12,15 @@ export const metadata: Metadata = {
 
 export default function UsersPage() {
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6 animate-in-fade">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight font-heading">User Management</h2>
-                <div className="flex items-center space-x-2">
-                    <UserDialog />
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-medium">Users</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Manage users and their permissions.
+                    </p>
                 </div>
+                <UserDialog />
             </div>
             <div className="flex items-center space-x-2">
                 <div className="relative flex-1 max-w-sm">

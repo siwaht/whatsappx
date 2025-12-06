@@ -160,16 +160,16 @@ export default async function DashboardPage() {
     ];
 
     return (
-        <div className="flex-1 space-y-8 p-8 pt-6 bg-[#0B1120] min-h-screen text-slate-100">
+        <div className="flex-1 space-y-8 p-8 pt-6 bg-background min-h-screen text-foreground animate-in-fade">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-bold tracking-tight text-white">Good morning, {firstName}</h2>
-                    <p className="text-slate-400">
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground font-heading">Good morning, {firstName}</h2>
+                    <p className="text-muted-foreground">
                         Welcome to your dashboard. Here's what's happening with your account today.
                     </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button>
                         New Broadcast
                     </Button>
                 </div>
@@ -179,18 +179,18 @@ export default async function DashboardPage() {
                 {stats.map((stat, index) => (
                     <div
                         key={index}
-                        className={`p-6 rounded-xl border bg-[#0F172A] ${stat.border} relative overflow-hidden group hover:scale-[1.02] transition-transform duration-200`}
+                        className={`p-6 rounded-2xl border glass-card relative overflow-hidden group hover:scale-[1.02] transition-transform duration-200 animate-enter-delay-1`}
                     >
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <p className="text-sm font-medium text-slate-400">{stat.label}</p>
-                                <h3 className="text-3xl font-bold text-white mt-2">{stat.value}</h3>
+                                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                                <h3 className="text-3xl font-bold text-foreground mt-2">{stat.value}</h3>
                             </div>
-                            <div className={`p-2 rounded-lg ${stat.bg}`}>
-                                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                            <div className={`p-2 rounded-lg ${stat.bg} ${stat.color}`}>
+                                <stat.icon className={`h-5 w-5`} />
                             </div>
                         </div>
-                        <p className="text-xs text-slate-500">{stat.subtext}</p>
+                        <p className="text-xs text-muted-foreground">{stat.subtext}</p>
                         {stat.badge && (
                             <div className="absolute bottom-4 right-4 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium border border-emerald-500/20">
                                 {stat.badge}
@@ -200,21 +200,21 @@ export default async function DashboardPage() {
                 ))}
             </div>
 
-            <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-white">Quick Actions</h3>
-                <p className="text-sm text-slate-400">Shortcuts to frequently used features</p>
+            <div className="space-y-4 animate-enter-delay-2">
+                <h3 className="text-xl font-semibold text-foreground font-heading">Quick Actions</h3>
+                <p className="text-sm text-muted-foreground">Shortcuts to frequently used features</p>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {quickActions.map((action, index) => (
                         <Link
                             key={index}
                             href={action.href}
-                            className="flex items-center p-4 rounded-xl border border-slate-800 bg-[#0F172A] hover:bg-slate-800/50 transition-colors group"
+                            className="flex items-center p-4 rounded-xl border bg-card/50 hover:bg-card hover:shadow-md transition-all duration-200 group"
                         >
-                            <div className={`p-3 rounded-lg bg-slate-900 group-hover:bg-slate-800 mr-4 border border-slate-800`}>
+                            <div className={`p-3 rounded-lg bg-background group-hover:bg-primary/5 mr-4 border transition-colors`}>
                                 <action.icon className={`h-6 w-6 ${action.color}`} />
                             </div>
-                            <span className="font-medium text-slate-200">{action.label}</span>
+                            <span className="font-medium text-foreground">{action.label}</span>
                         </Link>
                     ))}
                 </div>
