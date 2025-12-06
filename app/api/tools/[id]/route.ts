@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await auth();
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const tool = await prisma.tool.findUnique({
+        const { id } = await params;
+        const tool = await prisma.tool.findFirst({
             where: {
-                id: parseInt(params.id),
-                userId: session.user.id
+                id: parseInt(id),
+                userId: parseInt(session.user.id)
             }
         });
 
@@ -26,21 +27,30 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await auth();
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const { id } = await params;
         const body = await request.json();
         const { name, type, config, description } = body;
 
+        const toolId = parseInt(id);
+        const userId = parseInt(session.user.id);
+
+        const existingTool = await prisma.tool.findFirst({
+            where: { id: toolId, userId }
+        });
+
+        if (!existingTool) {
+            return NextResponse.json({ error: 'Tool not found' }, { status: 404 });
+        }
+
         const tool = await prisma.tool.update({
-            where: {
-                id: parseInt(params.id),
-                userId: session.user.id
-            },
+            where: { id: toolId },
             data: {
                 name,
                 type,
@@ -55,17 +65,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await auth();
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await prisma.tool.delete({
+        const { id } = await params;
+        await prisma.tool.deleteMany({
             where: {
-                id: parseInt(params.id),
-                userId: session.user.id
+                id: parseInt(id),
+                userId: parseInt(session.user.id)
             }
         });
 

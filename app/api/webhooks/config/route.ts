@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         const result = await api.setWebhook(instanceName, {
             enabled,
             url,
-            webhookByEvents: true,
+            webhook_by_events: true,
             events
         });
 

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
         }
 
         const tools = await prisma.tool.findMany({
-            where: { userId: session.user.id },
+            where: { userId: parseInt(session.user.id) },
             orderBy: { createdAt: 'desc' }
         });
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
                 type,
                 config,
                 description,
-                userId: session.user.id
+                userId: parseInt(session.user.id)
             }
         });
 

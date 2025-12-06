@@ -74,6 +74,7 @@ model User {
   broadcasts    Broadcast[]
   aiAgents      AIAgent[]
   instanceConfigs InstanceConfig[]
+  tools           Tool[]
 
   @@index([email])
   @@index([username])
@@ -240,16 +241,53 @@ model AIAgent {
   id           Int      @id @default(autoincrement())
   name         String
   systemPrompt String   @map("system_prompt") @db.Text
+  model        String   @default("gpt-4o")
+  temperature  Float    @default(0.7)
+  isActive     Boolean  @default(true) @map("is_active")
+  userId       Int      @map("user_id")
   aiAgentId    Int?     @map("ai_agent_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiAgent      AIAgent? @relation(fields: [aiAgentId], references: [id], onDelete: SetNull)
+  aiAgent      AIAgent? @relation("AgentRecursive", fields: [aiAgentId], references: [id], onDelete: SetNull)
+  subAgents    AIAgent[] @relation("AgentRecursive")
+  instanceConfigs InstanceConfig[]
+  tools        Tool[]
 
   @@index([userId])
-  @@index([instanceName])
+  @@map("ai_agents")
+}
+
+model InstanceConfig {
+  instanceName String   @id @map("instance_name")
+  userId       Int      @map("user_id")
+  aiAgentId    Int?     @map("ai_agent_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiAgent      AIAgent? @relation(fields: [aiAgentId], references: [id])
+
+  @@index([userId])
   @@map("instance_configs")
+}
+
+model Tool {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String
+  description String?
+  config      Json
+  userId      Int      @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiAgents    AIAgent[]
+
+  @@index([userId])
+  @@map("tools")
 }
 
 model Contact {
