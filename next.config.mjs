@@ -2,7 +2,7 @@
 const nextConfig = {
   // Standalone output for Replit deployment
   output: 'standalone',
-  
+
   // Security headers
   async headers() {
     return [
@@ -41,7 +41,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -52,19 +52,30 @@ const nextConfig = {
       },
     ],
   },
-  
+
   // Experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'date-fns',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-toast'
+    ],
     serverActions: {
       allowedOrigins: ['*'],
     },
   },
-  
+
   // Production optimizations
   poweredByHeader: false,
   compress: true,
-  
+
   // Logging
   logging: {
     fetches: {

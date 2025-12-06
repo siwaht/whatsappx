@@ -27,16 +27,24 @@ async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
     if (user?.evolutionApiUrl && user?.evolutionApiKey) {
         return new EvolutionAPIClient(user.evolutionApiUrl, user.evolutionApiKey);
     }
-    
+
     const envUrl = process.env.EVOLUTION_API_URL;
     const envKey = process.env.EVOLUTION_API_KEY;
-    
+
     if (envUrl && envKey) {
         return getEvolutionAPI();
     }
-    
+
     return null;
 }
+
+import { unstable_cache } from "next/cache";
+
+const getCachedContactCount = unstable_cache(
+    async () => prisma.contact.count(),
+    ['total-contacts'],
+    { revalidate: 60, tags: ['contacts'] }
+);
 
 export default async function DashboardPage() {
     let session;
@@ -60,7 +68,7 @@ export default async function DashboardPage() {
         const api = await getClient(session.user.id);
         apiConfigured = api !== null;
 
-        const contactCountPromise = prisma.contact.count();
+        const contactCountPromise = getCachedContactCount();
         const instancesPromise = api ? api.fetchInstances() : Promise.resolve([]);
 
         const results = await Promise.allSettled([
