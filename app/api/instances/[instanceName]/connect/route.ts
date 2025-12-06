@@ -17,7 +17,7 @@ async function getClient(userId: string) {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ instanceName: string }> }
 ) {
     try {
         const session = await auth();
@@ -29,7 +29,7 @@ export async function GET(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const { id: instanceName } = await params;
+        const { instanceName } = await params;
         const api = await getClient(session.user.id);
 
         const result = await api.connectInstance(instanceName);
