@@ -148,6 +148,18 @@ export const authConfig: NextAuthConfig = {
       }
       return session;
     },
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      const isLoggedIn = !!auth?.user;
+      const isAuthPage = pathname.startsWith('/login');
+
+      if (isAuthPage) {
+        if (isLoggedIn) return Response.redirect(new URL('/', request.nextUrl));
+        return true;
+      }
+
+      return isLoggedIn;
+    },
   },
   pages: {
     signIn: '/login',
