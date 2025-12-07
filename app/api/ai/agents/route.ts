@@ -50,11 +50,20 @@ export async function POST(request: NextRequest) {
                 temperature: temperature || 0.7,
                 isActive: isActive !== undefined ? isActive : true,
                 userId: parseInt(session.user.id),
-                tools: toolIds && toolIds.length > 0 ? {
-                    connect: toolIds.map((id: number) => ({ id }))
-                } : undefined
             },
         });
+
+        // Connect tools to agent if toolIds provided (many-to-many relation)
+        if (toolIds && toolIds.length > 0) {
+            await prisma.aIAgent.update({
+                where: { id: agent.id },
+                data: {
+                    tools: {
+                        connect: toolIds.map((id: number) => ({ id }))
+                    }
+                }
+            });
+        }
 
         return NextResponse.json(agent, { status: 201 });
     } catch (error: any) {

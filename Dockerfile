@@ -24,6 +24,7 @@ RUN npx prisma generate
 
 # Set environment variable for build
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV BUILD_STANDALONE true
 
 # Build the application
 RUN npm run build

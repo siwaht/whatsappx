@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Standalone output for Replit deployment
-  output: 'standalone',
+  // Standalone output for Replit/Docker deployment
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
   // Security headers
   async headers() {

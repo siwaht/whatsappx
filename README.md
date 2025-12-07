@@ -45,131 +45,62 @@ npm install
 
 ### 2. Environment Setup
 
-Create a `.env.local` file:
-
-```env
-# Database
-DATABASE_URL=postgresql://whatsapp:whatsapp123@localhost:5432/whatsapp_dashboard
-
-# Evolution API
-EVOLUTION_API_URL=http://localhost:8080
-EVOLUTION_API_KEY=your-api-key-here
-
-# NextAuth
-NEXTAUTH_SECRET=your-secret-key-here-generate-with-openssl-rand-base64-32
-NEXTAUTH_URL=http://localhost:5000
-```
-
-### 3. Start Backend Services
+Copy `.env.example` to `.env.local` and configure your variables:
 
 ```bash
-docker-compose up -d
+cp .env.example .env.local
 ```
 
-This starts:
-- PostgreSQL on port 5432
-- Redis on port 6379
-- Evolution API on port 8080
-
-### 4. Initialize Database
-
-```bash
-# Run the main schema
-docker exec -i whatsapp-dashboard-postgres psql -U whatsapp -d whatsapp_dashboard < database/schema.sql
-
-# Run the user management schema
-docker exec -i whatsapp-dashboard-postgres psql -U whatsapp -d whatsapp_dashboard < database/user-management-schema.sql
-```
-
-### 5. Start Development Server
+### 3. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:5000
+Open http://localhost:3000
 
-### 6. Login
+## Deployment
 
-Default admin credentials:
-- **Email**: `cc@siwaht.com`
-- **Password**: `Hola173!`
+### Netlify
+1. Connect your repository to Netlify.
+2. The `netlify.toml` file is included to handle build settings automatically.
+3. Set your environment variables in the Netlify dashboard (Database URL, NextAuth Secret, etc.).
 
-## Project Structure
+### Vercel
+1. Import your project to Vercel.
+2. Vercel automatically detects Next.js.
+3. Add your environment variables in the Vercel project settings.
 
-```
-├── app/
-│   ├── (auth)/           # Login page
-│   ├── (dashboard)/      # Protected dashboard pages
-│   └── api/              # API routes
-├── components/
-│   ├── auth/             # Auth components
-│   ├── dashboard/        # Dashboard components
-│   ├── layout/           # Layout components
-│   └── ui/               # shadcn/ui components
-├── database/
-│   ├── schema.sql        # Main database schema
-│   └── user-management-schema.sql  # User/role schema
-├── hooks/                # React Query hooks
-├── lib/
-│   ├── auth.ts           # NextAuth configuration
-│   ├── evolution-api.ts  # Evolution API client
-│   ├── permissions.ts    # Permission utilities
-│   └── providers.tsx     # React providers
-├── types/                # TypeScript definitions
-└── middleware.ts         # Route protection
+### Docker / AWS / VPS
+The included `Dockerfile` allows for containerized deployment.
+
+```bash
+# Build the image
+docker build -t whatsapp-dashboard .
+
+# Run the container
+docker run -p 3000:3000 --env-file .env whatsapp-dashboard
 ```
 
-## Default Roles
+### Bolt.new / Lovable
+This project is compatible with cloud development environments like Bolt.new and Lovable. Ensure you install dependencies (`npm install`) and start the dev server (`npm run dev`).
 
-| Role | Description |
-|------|-------------|
-| **Super Admin** | Full system access |
-| **Admin** | Most permissions except user deletion |
-| **Manager** | Instance and operational management |
-| **Operator** | Day-to-day operations |
-| **Viewer** | Read-only access |
+## Database Management
+This project uses Prisma with PostgreSQL.
+- **Generate Client**: `npx prisma generate`
+- **Push Schema**: `npx prisma db push`
+- **Seed Data**: `npm run seed` (if available)
 
 ## Environment Variables
+Refer to `.env.example` for a complete list of required variables.
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `EVOLUTION_API_URL` | Evolution API URL | Yes |
-| `EVOLUTION_API_KEY` | Evolution API key | Yes |
-| `NEXTAUTH_SECRET` | NextAuth secret key | Yes |
-| `NEXTAUTH_URL` | Application URL | Yes |
-
-## Docker Services
-
-The `docker-compose.yml` includes:
-- **PostgreSQL** (5432) - Main database
-- **Redis** (6379) - Cache and sessions
-- **Evolution API** (8080) - WhatsApp integration
-- **Dashboard** (5000) - Next.js application
-
-## Development
-
-```bash
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linter
-npm run lint
-```
-
-## Security Notes
-
-- Always use HTTPS in production
-- Keep `NEXTAUTH_SECRET` secure and unique
-- Change default admin password immediately
-- Regularly rotate API keys
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `EVOLUTION_API_URL` | Evolution API URL |
+| `EVOLUTION_API_KEY` | Evolution API key |
+| `NEXTAUTH_SECRET` | NextAuth secret key |
+| `NEXTAUTH_URL` | Application URL (e.g. https://your-domain.com) |
 
 ## License
 
