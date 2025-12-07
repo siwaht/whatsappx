@@ -1,74 +1,81 @@
 import NextAuth, { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { Pool } from 'pg';
+import { createClient } from '@supabase/supabase-js';
 
-// Create PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-// Fetch user with permissions from database
 async function getUserWithPermissions(email: string) {
-  const client = await pool.connect();
   try {
-    const userResult = await client.query(
-      `SELECT u.id, u.email, u.username, u.password, u.first_name, u.last_name, u.is_active
-       FROM users u
-       WHERE u.email = $1 AND u.is_active = TRUE`,
-      [email]
-    );
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, email, username, password, first_name, last_name, is_active')
+      .eq('email', email)
+      .eq('is_active', true)
+      .maybeSingle();
 
-    if (userResult.rows.length === 0) {
+    if (userError || !userData) {
       return null;
     }
 
-    const user = userResult.rows[0];
+    const { data: permissionsData } = await supabase
+      .from('user_roles')
+      .select(`
+        roles (
+          name,
+          role_permissions (
+            permissions (
+              name
+            )
+          )
+        )
+      `)
+      .eq('user_id', userData.id);
 
-    // Fetch user role and permissions through user_roles join table
-    const permissionsResult = await client.query(
-      `SELECT DISTINCT r.name as role_name, p.name as permission_name
-       FROM users u
-       JOIN user_roles ur ON u.id = ur.user_id
-       JOIN roles r ON ur.role_id = r.id
-       JOIN role_permissions rp ON r.id = rp.role_id
-       JOIN permissions p ON rp.permission_id = p.id
-       WHERE u.email = $1 AND u.is_active = TRUE`,
-      [email]
-    );
+    const permissions: string[] = [];
+    let role: string | null = null;
 
-    const permissions = permissionsResult.rows.map((row) => row.permission_name);
-    const role = permissionsResult.rows.length > 0 ? permissionsResult.rows[0].role_name : null;
+    if (permissionsData && permissionsData.length > 0) {
+      const roleData = permissionsData[0].roles as any;
+      role = roleData.name;
 
-    // Build display name from first_name + last_name, fallback to username
-    const displayName = user.first_name && user.last_name
-      ? `${user.first_name} ${user.last_name}`
-      : user.username;
+      if (roleData.role_permissions) {
+        permissions.push(
+          ...roleData.role_permissions.map((rp: any) => rp.permissions.name)
+        );
+      }
+    }
+
+    const displayName = userData.first_name && userData.last_name
+      ? `${userData.first_name} ${userData.last_name}`
+      : userData.username;
 
     return {
-      id: user.id.toString(),
-      email: user.email,
+      id: userData.id.toString(),
+      email: userData.email,
       name: displayName,
       role,
       permissions,
-      isActive: user.is_active,
-      passwordHash: user.password,
+      isActive: userData.is_active,
+      passwordHash: userData.password,
     };
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
   }
 }
 
-// Update last login time
 async function updateLastLogin(userId: string) {
-  const client = await pool.connect();
   try {
-    await client.query(
-      'UPDATE users SET last_login_at = NOW() WHERE id = $1',
-      [userId]
-    );
-  } finally {
-    client.release();
+    await supabase
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', parseInt(userId));
+  } catch (error) {
+    console.error('Error updating last login:', error);
   }
 }
 
@@ -140,6 +147,18 @@ export const authConfig: NextAuthConfig = {
         };
       }
       return session;
+    },
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      const isLoggedIn = !!auth?.user;
+      const isAuthPage = pathname.startsWith('/login');
+
+      if (isAuthPage) {
+        if (isLoggedIn) return Response.redirect(new URL('/', request.nextUrl));
+        return true;
+      }
+
+      return isLoggedIn;
     },
   },
   pages: {

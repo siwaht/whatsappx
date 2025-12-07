@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
-import { prisma } from "@/lib/prisma";
+import { createClient } from '@supabase/supabase-js';
 import { getEvolutionAPI, EvolutionAPIClient } from "@/lib/evolution-api";
 import {
     Folder,
@@ -18,14 +18,20 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
-    const user = await prisma.user.findUnique({
-        where: { id: parseInt(userId) },
-        select: { evolutionApiUrl: true, evolutionApiKey: true }
-    });
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-    if (user?.evolutionApiUrl && user?.evolutionApiKey) {
-        return new EvolutionAPIClient(user.evolutionApiUrl, user.evolutionApiKey);
+async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
+    const { data: user } = await supabase
+        .from('users')
+        .select('evolution_api_url, evolution_api_key')
+        .eq('id', parseInt(userId))
+        .maybeSingle();
+
+    if (user?.evolution_api_url && user?.evolution_api_key) {
+        return new EvolutionAPIClient(user.evolution_api_url, user.evolution_api_key);
     }
 
     const envUrl = process.env.EVOLUTION_API_URL;
@@ -38,13 +44,13 @@ async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
     return null;
 }
 
-import { unstable_cache } from "next/cache";
+async function getContactCount() {
+    const { count } = await supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true });
 
-const getCachedContactCount = unstable_cache(
-    async () => prisma.contact.count(),
-    ['total-contacts'],
-    { revalidate: 60, tags: ['contacts'] }
-);
+    return count || 0;
+}
 
 export default async function DashboardPage() {
     let session;
@@ -68,7 +74,7 @@ export default async function DashboardPage() {
         const api = await getClient(session.user.id);
         apiConfigured = api !== null;
 
-        const contactCountPromise = getCachedContactCount();
+        const contactCountPromise = getContactCount();
         const instancesPromise = api ? api.fetchInstances() : Promise.resolve([]);
 
         const results = await Promise.allSettled([
