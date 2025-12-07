@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { getEvolutionAPI, EvolutionAPIClient } from "@/lib/evolution-api";
 
 export const dynamic = 'force-dynamic';
-import { createClient } from '@supabase/supabase-js';
-import { getEvolutionAPI, EvolutionAPIClient } from "@/lib/evolution-api";
 import {
     Folder,
     Activity,
@@ -18,12 +18,11 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+
 
 async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
+    if (!supabase) return null;
+
     const { data: user } = await supabase
         .from('users')
         .select('evolution_api_url, evolution_api_key')
@@ -45,6 +44,8 @@ async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
 }
 
 async function getContactCount() {
+    if (!supabase) return 0;
+
     const { count } = await supabase
         .from('contacts')
         .select('*', { count: 'exact', head: true });

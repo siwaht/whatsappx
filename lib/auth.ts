@@ -1,15 +1,15 @@
 import NextAuth, { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from '@/lib/supabase';
 
 async function getUserWithPermissions(email: string) {
   try {
+    if (!supabase) {
+      console.warn('Supabase not configured, skipping user fetch');
+      return null;
+    }
+
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('id, email, username, password, first_name, last_name, is_active')
@@ -70,6 +70,8 @@ async function getUserWithPermissions(email: string) {
 
 async function updateLastLogin(userId: string) {
   try {
+    if (!supabase) return;
+
     await supabase
       .from('users')
       .update({ last_login_at: new Date().toISOString() })
