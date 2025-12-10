@@ -57,18 +57,19 @@ export const KnowledgeBaseManager = () => {
             const headers = picaKey ? { 'x-pica-secret': picaKey } : {};
             const res = await axios.get('/api/pica/connections', { headers });
 
-            // Added 'elevenlabs' to supported platforms
-            const vectorPlatforms = ['mongodb', 'pinecone', 'weaviate', 'supabase', 'qdrant', 'chroma'];
-            const vectorConns = res.data.filter((c: Connection) => vectorPlatforms.includes(c.platform));
-            setConnections(vectorConns);
-
+            // Separate Firecrawl connections from others (Databases, Tools, etc.)
             const crawlerConns = res.data.filter((c: Connection) => c.platform === 'firecrawl');
             setCrawlerConnections(crawlerConns);
 
-            if (vectorConns.length === 0 && crawlerConns.length === 0) {
+            // Treat all other connections as generic "Database/Tool" connections
+            // This allows any platform supported by PicaOS (MongoDB, Supabase, ElevenLabs, etc.) to be used
+            const otherConns = res.data.filter((c: Connection) => c.platform !== 'firecrawl');
+            setConnections(otherConns);
+
+            if (otherConns.length === 0 && crawlerConns.length === 0) {
                 toast({
                     title: "No Connections Found",
-                    description: "Make sure you have connected a vector database or Firecrawl in PicaOS.",
+                    description: "Make sure you have connected a database or tool in PicaOS.",
                     variant: "destructive"
                 });
             }

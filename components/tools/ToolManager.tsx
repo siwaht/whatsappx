@@ -31,14 +31,21 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, Edit, Plug, Webhook, CheckCircle2, XCircle, Play, Eye, EyeOff } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Plug, Webhook, CheckCircle2, XCircle, Play, Eye, EyeOff, Terminal, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
-interface HeaderPair {
+interface KeyValuePair {
     key: string;
     value: string;
     isVisible?: boolean;
+}
+
+interface SchemaParam {
+    name: string;
+    type: string;
+    description: string;
+    required: boolean;
 }
 
 export function ToolManager() {
@@ -48,10 +55,23 @@ export function ToolManager() {
     const [description, setDescription] = useState("");
     const [type, setType] = useState("WEBHOOK");
 
-    // Structured inputs
+    // Webhook specific
     const [webhookUrl, setWebhookUrl] = useState("");
-    const [headers, setHeaders] = useState<HeaderPair[]>([]);
+    const [headers, setHeaders] = useState<KeyValuePair[]>([]);
+
+    // MCP specific
+    const [mcpConnectionType, setMcpConnectionType] = useState<'HTTP' | 'STDIO'>('HTTP');
     const [mcpServerUrl, setMcpServerUrl] = useState("");
+    const [mcpCommand, setMcpCommand] = useState("");
+    const [mcpArgs, setMcpArgs] = useState(""); // Stored as newline separated string for UI
+    const [mcpEnv, setMcpEnv] = useState<KeyValuePair[]>([]);
+
+    // MCP Auth (HTTP only)
+    const [mcpAuthType, setMcpAuthType] = useState<'NONE' | 'BEARER' | 'API_KEY'>('NONE');
+    const [mcpApiKey, setMcpApiKey] = useState("");
+
+    // Schema Builder
+    const [schemaParams, setSchemaParams] = useState<SchemaParam[]>([]);
 
     // Testing state
     const [isTesting, setIsTesting] = useState(false);
@@ -106,7 +126,16 @@ export function ToolManager() {
         setType("WEBHOOK");
         setWebhookUrl("");
         setHeaders([]);
+
+        setMcpConnectionType("HTTP");
         setMcpServerUrl("");
+        setMcpCommand("");
+        setMcpArgs("");
+        setMcpEnv([]);
+        setMcpAuthType("NONE");
+        setMcpApiKey("");
+
+        setSchemaParams([]);
         setTestResult(null);
     };
 
@@ -117,59 +146,331 @@ export function ToolManager() {
         setType(tool.type);
         setTestResult(null);
 
-        const configHeaders = tool.config.headers || {};
-        const headerPairs = Object.entries(configHeaders).map(([key, value]) => ({
-            key,
-            value: value as string,
-            isVisible: false
-        }));
-        setHeaders(headerPairs);
+        // Parse Config
+        const config = tool.config || {};
+
+        // Parse Schema
+        if (config.schema && config.schema.properties) {
+            const parsed: SchemaParam[] = Object.keys(config.schema.properties).map(key => ({
+                name: key,
+                type: config.schema.properties[key].type,
+                description: config.schema.properties[key].description || "",
+                required: (config.schema.required || []).includes(key)
+            }));
+            setSchemaParams(parsed);
+        } else {
+            setSchemaParams([]);
+        }
 
         if (tool.type === 'WEBHOOK') {
-            setWebhookUrl(tool.config.url || "");
+            setWebhookUrl(config.url || "");
+            const configHeaders = config.headers || {};
+            const headerPairs = Object.entries(configHeaders).map(([key, value]) => ({
+                key,
+                value: value as string,
+                isVisible: false
+            }));
+            setHeaders(headerPairs);
         } else if (tool.type === 'MCP') {
-            setMcpServerUrl(tool.config.serverUrl || "");
+            if (config.command) {
+                setMcpConnectionType("STDIO");
+                setMcpCommand(config.command);
+                setMcpArgs((config.args || []).join('\n'));
+
+                const envObj = config.env || {};
+                const envPairs = Object.entries(envObj).map(([key, value]) => ({
+                    key,
+                    value: value as string,
+                    isVisible: false
+                }));
+                setMcpEnv(envPairs);
+            } else {
+                setMcpConnectionType("HTTP");
+                setMcpServerUrl(config.serverUrl || "");
+
+                // Parse Auth from headers
+                const authHeaders = config.headers || {};
+                if (authHeaders['Authorization']) {
+                    setMcpAuthType('BEARER');
+                    setMcpApiKey(authHeaders['Authorization'].replace('Bearer ', ''));
+                } else if (authHeaders['x-api-key']) {
+                    setMcpAuthType('API_KEY');
+                    setMcpApiKey(authHeaders['x-api-key']);
+                } else {
+                    setMcpAuthType('NONE');
+                    setMcpApiKey("");
+                }
+            }
         }
 
         setIsDialogOpen(true);
     };
 
-    // Header management functions
-    const addHeader = () => {
-        setHeaders([...headers, { key: '', value: '', isVisible: false }]);
+    // Generic Key-Value Builder
+    const KeyValueBuilder = ({
+        items,
+        setItems,
+        label,
+        keyPlaceholder = "Key",
+        valuePlaceholder = "Value",
+        isSecret = true
+    }: {
+        items: KeyValuePair[],
+        setItems: (items: KeyValuePair[]) => void,
+        label: string,
+        keyPlaceholder?: string,
+        valuePlaceholder?: string,
+        isSecret?: boolean
+    }) => {
+        const addItem = () => setItems([...items, { key: '', value: '', isVisible: false }]);
+        const removeItem = (index: number) => {
+            const newItems = [...items];
+            newItems.splice(index, 1);
+            setItems(newItems);
+        };
+        const updateItem = (index: number, field: 'key' | 'value', newValue: string) => {
+            const newItems = [...items];
+            newItems[index][field] = newValue;
+            setItems(newItems);
+        };
+        const toggleVisibility = (index: number) => {
+            const newItems = [...items];
+            newItems[index].isVisible = !newItems[index].isVisible;
+            setItems(newItems);
+        };
+
+        return (
+            <div className="space-y-2">
+                <Label>{label}</Label>
+                <div className="space-y-2">
+                    {items.map((item, index) => (
+                        <div key={index} className="flex gap-2 items-start">
+                            <Input
+                                placeholder={keyPlaceholder}
+                                value={item.key}
+                                onChange={(e) => updateItem(index, 'key', e.target.value)}
+                                className="flex-1"
+                            />
+                            <div className="flex-1 relative">
+                                <Input
+                                    type={isSecret && !item.isVisible ? "password" : "text"}
+                                    placeholder={valuePlaceholder}
+                                    value={item.value}
+                                    onChange={(e) => updateItem(index, 'value', e.target.value)}
+                                    className="pr-8"
+                                />
+                                {isSecret && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
+                                        onClick={() => toggleVisibility(index)}
+                                    >
+                                        {item.isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                    </Button>
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeItem(index)}
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addItem}
+                        className="w-full border-dashed"
+                    >
+                        <Plus className="h-3 w-3 mr-2" />
+                        Add {label.slice(0, -1)}
+                    </Button>
+                </div>
+            </div>
+        );
     };
 
-    const removeHeader = (index: number) => {
-        const newHeaders = [...headers];
-        newHeaders.splice(index, 1);
-        setHeaders(newHeaders);
+    const SchemaBuilder = () => {
+        const addParam = () => setSchemaParams([...schemaParams, { name: '', type: 'string', description: '', required: false }]);
+        const removeParam = (index: number) => {
+            const newParams = [...schemaParams];
+            newParams.splice(index, 1);
+            setSchemaParams(newParams);
+        };
+        const updateParam = (index: number, field: keyof SchemaParam, value: any) => {
+            const newParams = [...schemaParams];
+            // @ts-ignore
+            newParams[index][field] = value;
+            setSchemaParams(newParams);
+        };
+
+        return (
+            <div className="space-y-2 border rounded-md p-4 bg-muted/50">
+                <Label className="flex items-center gap-2">
+                    Input Parameters (JSON Schema)
+                    <Badge variant="outline" className="text-[10px]">Optional</Badge>
+                </Label>
+                <p className="text-xs text-muted-foreground mb-4">
+                    Define the parameters this tool accepts. Useful for AI Agents to understand structured inputs.
+                </p>
+                <div className="space-y-4">
+                    {schemaParams.map((param, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-start bg-background p-2 rounded border">
+                            <div className="col-span-3">
+                                <Input
+                                    placeholder="Name (e.g. email)"
+                                    value={param.name}
+                                    onChange={(e) => updateParam(index, 'name', e.target.value)}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                            <div className="col-span-3">
+                                <Select value={param.type} onValueChange={(val) => updateParam(index, 'type', val)}>
+                                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="string">String</SelectItem>
+                                        <SelectItem value="number">Number</SelectItem>
+                                        <SelectItem value="boolean">Boolean</SelectItem>
+                                        <SelectItem value="object">Object</SelectItem>
+                                        <SelectItem value="array">Array</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="col-span-4">
+                                <Input
+                                    placeholder="Description..."
+                                    value={param.description}
+                                    onChange={(e) => updateParam(index, 'description', e.target.value)}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                            <div className="col-span-1 flex items-center justify-center h-8">
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={param.required}
+                                        onChange={(e) => updateParam(index, 'required', e.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300"
+                                        title="Required?"
+                                    />
+                                </div>
+                            </div>
+                            <div className="col-span-1 flex justify-end">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeParam(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={addParam} className="w-full border-dashed">
+                        <Plus className="h-3 w-3 mr-2" /> Add Parameter
+                    </Button>
+                </div>
+            </div>
+        );
     };
 
-    const updateHeader = (index: number, field: 'key' | 'value', newValue: string) => {
-        const newHeaders = [...headers];
-        newHeaders[index][field] = newValue;
-        setHeaders(newHeaders);
-    };
+    const MCPAuthSelector = () => {
+        if (mcpConnectionType === 'STDIO') return null;
 
-    const toggleHeaderVisibility = (index: number) => {
-        const newHeaders = [...headers];
-        newHeaders[index].isVisible = !newHeaders[index].isVisible;
-        setHeaders(newHeaders);
-    };
+        return (
+            <div className="space-y-4 border rounded-md p-4 bg-muted/50">
+                <Label>Authentication</Label>
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1">
+                        <Select value={mcpAuthType} onValueChange={(val: any) => setMcpAuthType(val)}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="NONE">None</SelectItem>
+                                <SelectItem value="BEARER">Bearer Token</SelectItem>
+                                <SelectItem value="API_KEY">X-API-Key</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="col-span-2">
+                        <div className="relative">
+                            <Input
+                                type="password"
+                                placeholder={mcpAuthType === 'NONE' ? "No auth required" : "Enter Key/Token"}
+                                value={mcpApiKey}
+                                onChange={(e) => setMcpApiKey(e.target.value)}
+                                disabled={mcpAuthType === 'NONE'}
+                                className="pr-10"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const getConfig = () => {
-        const headersObj: Record<string, string> = {};
-        headers.forEach(h => {
-            if (h.key.trim()) {
-                headersObj[h.key.trim()] = h.value;
+        // Schema Generation
+        const schema = {
+            type: "object",
+            properties: {} as any,
+            required: [] as string[]
+        };
+
+        schemaParams.forEach(p => {
+            if (p.name) {
+                schema.properties[p.name] = {
+                    type: p.type,
+                    description: p.description
+                };
+                if (p.required) {
+                    schema.required.push(p.name);
+                }
             }
         });
 
+        // Webhook Config
         if (type === 'WEBHOOK') {
-            return { url: webhookUrl, headers: headersObj };
-        } else {
-            return { serverUrl: mcpServerUrl, headers: headersObj };
+            const headersObj: Record<string, string> = {};
+            headers.forEach(h => { if (h.key.trim()) headersObj[h.key.trim()] = h.value; });
+            return { url: webhookUrl, headers: headersObj, schema };
         }
+
+        // MCP Config
+        if (type === 'MCP') {
+            if (mcpConnectionType === 'STDIO') {
+                const envObj: Record<string, string> = {};
+                mcpEnv.forEach(e => { if (e.key.trim()) envObj[e.key.trim()] = e.value; });
+
+                return {
+                    connectionType: 'STDIO',
+                    command: mcpCommand,
+                    args: mcpArgs.split('\n').filter(a => a.trim() !== ''),
+                    env: envObj,
+                    schema
+                };
+            } else {
+                const headersObj: Record<string, string> = {};
+                if (mcpAuthType === 'BEARER' && mcpApiKey) {
+                    headersObj['Authorization'] = `Bearer ${mcpApiKey}`;
+                } else if (mcpAuthType === 'API_KEY' && mcpApiKey) {
+                    headersObj['x-api-key'] = mcpApiKey;
+                }
+
+                return {
+                    connectionType: 'HTTP',
+                    serverUrl: mcpServerUrl,
+                    headers: headersObj,
+                    schema
+                };
+            }
+        }
+
+        return {};
     };
 
     const handleTest = async () => {
@@ -205,61 +506,6 @@ export function ToolManager() {
         }
     };
 
-    const HeaderBuilder = () => (
-        <div className="space-y-2">
-            <Label>Headers</Label>
-            <div className="space-y-2">
-                {headers.map((header, index) => (
-                    <div key={index} className="flex gap-2 items-start">
-                        <Input
-                            placeholder="Key (e.g. Authorization)"
-                            value={header.key}
-                            onChange={(e) => updateHeader(index, 'key', e.target.value)}
-                            className="flex-1"
-                        />
-                        <div className="flex-1 relative">
-                            <Input
-                                type={header.isVisible ? "text" : "password"}
-                                placeholder="Value"
-                                value={header.value}
-                                onChange={(e) => updateHeader(index, 'value', e.target.value)}
-                                className="pr-8"
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
-                                onClick={() => toggleHeaderVisibility(index)}
-                            >
-                                {header.isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </Button>
-                        </div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeHeader(index)}
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
-                ))}
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addHeader}
-                    className="w-full border-dashed"
-                >
-                    <Plus className="h-3 w-3 mr-2" />
-                    Add Header
-                </Button>
-            </div>
-        </div>
-    );
-
     if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
     return (
@@ -275,30 +521,31 @@ export function ToolManager() {
                             Add Tool
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+                    <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>{editingTool ? 'Edit Tool' : 'Create New Tool'}</DialogTitle>
                             <DialogDescription>
                                 Configure a Webhook or MCP connection.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Tool" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="type">Type</Label>
-                                <Select value={type} onValueChange={(val) => { setType(val); setTestResult(null); }}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="WEBHOOK">Webhook</SelectItem>
-                                        <SelectItem value="MCP">MCP Client</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        <div className="grid gap-6 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Tool" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="type">Type</Label>
+                                    <Select value={type} onValueChange={(val) => { setType(val); setTestResult(null); }}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="WEBHOOK">Webhook (HTTP)</SelectItem>
+                                            <SelectItem value="MCP">MCP Client</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -306,8 +553,11 @@ export function ToolManager() {
                                 <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
                             </div>
 
-                            <div className="border-t pt-4 mt-2">
-                                <h4 className="text-sm font-medium mb-3">Configuration</h4>
+                            <div className="border-t pt-4">
+                                <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                                    {type === 'WEBHOOK' ? <Globe className="h-4 w-4" /> : <Plug className="h-4 w-4" />}
+                                    Configuration
+                                </h4>
 
                                 {type === 'WEBHOOK' && (
                                     <div className="space-y-4">
@@ -320,28 +570,83 @@ export function ToolManager() {
                                                 placeholder="https://api.example.com/webhook"
                                             />
                                         </div>
-                                        <HeaderBuilder />
+                                        <KeyValueBuilder
+                                            items={headers}
+                                            setItems={setHeaders}
+                                            label="Headers"
+                                            keyPlaceholder="Header Name (e.g. Authorization)"
+                                        />
                                     </div>
                                 )}
 
                                 {type === 'MCP' && (
                                     <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="mcpServerUrl">MCP Server URL</Label>
-                                            <Input
-                                                id="mcpServerUrl"
-                                                value={mcpServerUrl}
-                                                onChange={(e) => setMcpServerUrl(e.target.value)}
-                                                placeholder="http://localhost:3000/sse"
-                                            />
-                                            <p className="text-[0.8rem] text-muted-foreground">
-                                                The URL of the MCP server's SSE endpoint.
-                                            </p>
+                                        <div className="flex items-center space-x-2 mb-4">
+                                            <div className={`cursor-pointer px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${mcpConnectionType === 'HTTP' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`} onClick={() => setMcpConnectionType('HTTP')}>
+                                                HTTP (SSE)
+                                            </div>
+                                            <div className={`cursor-pointer px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${mcpConnectionType === 'STDIO' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`} onClick={() => setMcpConnectionType('STDIO')}>
+                                                Stdio (Local)
+                                            </div>
                                         </div>
-                                        <HeaderBuilder />
+
+                                        {mcpConnectionType === 'HTTP' && (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="mcpServerUrl">MCP Server URL</Label>
+                                                    <Input
+                                                        id="mcpServerUrl"
+                                                        value={mcpServerUrl}
+                                                        onChange={(e) => setMcpServerUrl(e.target.value)}
+                                                        placeholder="http://localhost:3000/sse"
+                                                    />
+                                                </div>
+                                                <MCPAuthSelector />
+                                            </>
+                                        )}
+
+                                        {mcpConnectionType === 'STDIO' && (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="mcpCommand">Command</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Terminal className="h-4 w-4 text-muted-foreground" />
+                                                        <Input
+                                                            id="mcpCommand"
+                                                            value={mcpCommand}
+                                                            onChange={(e) => setMcpCommand(e.target.value)}
+                                                            placeholder="npx, python, node..."
+                                                            className="font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="mcpArgs">Arguments (One per line)</Label>
+                                                    <Textarea
+                                                        id="mcpArgs"
+                                                        value={mcpArgs}
+                                                        onChange={(e) => setMcpArgs(e.target.value)}
+                                                        placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;/path/to/directory"
+                                                        className="font-mono min-h-[100px]"
+                                                    />
+                                                </div>
+                                                <KeyValueBuilder
+                                                    items={mcpEnv}
+                                                    setItems={setMcpEnv}
+                                                    label="Environment Variables"
+                                                    keyPlaceholder="VAR_NAME"
+                                                    valuePlaceholder="Value"
+                                                />
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
+
+                            <div className="border-t pt-4">
+                                <SchemaBuilder />
+                            </div>
+
                         </div>
                         <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
                             <div className="flex items-center gap-2">
@@ -349,7 +654,7 @@ export function ToolManager() {
                                     type="button"
                                     variant="outline"
                                     onClick={handleTest}
-                                    disabled={isTesting || (type === 'WEBHOOK' && !webhookUrl) || (type === 'MCP' && !mcpServerUrl)}
+                                    disabled={isTesting || (type === 'WEBHOOK' && !webhookUrl) || (type === 'MCP' && (mcpConnectionType === 'HTTP' ? !mcpServerUrl : !mcpCommand))}
                                 >
                                     {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
                                     Test Connection
@@ -380,15 +685,15 @@ export function ToolManager() {
                         {tools?.map((tool: any) => (
                             <TableRow key={tool.id}>
                                 <TableCell className="font-medium flex items-center gap-2">
-                                    {tool.type === 'WEBHOOK' ? <Webhook className="h-4 w-4 text-blue-500" /> : <Plug className="h-4 w-4 text-green-500" />}
+                                    {tool.type === 'WEBHOOK' ? <Globe className="h-4 w-4 text-blue-500" /> : <Plug className="h-4 w-4 text-green-500" />}
                                     {tool.name}
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="outline">{tool.type}</Badge>
                                 </TableCell>
                                 <TableCell>{tool.description}</TableCell>
-                                <TableCell className="font-mono text-xs text-muted-foreground">
-                                    {tool.type === 'WEBHOOK' ? tool.config.url : tool.config.serverUrl}
+                                <TableCell className="font-mono text-xs text-muted-foreground max-w-[300px] truncate">
+                                    {tool.type === 'WEBHOOK' ? tool.config.url : (tool.config.command ? `${tool.config.command} ${(tool.config.args || []).join(' ')}` : tool.config.serverUrl)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { spawn } from "child_process";
 
 export async function POST(req: NextRequest) {
     try {
@@ -38,21 +39,64 @@ export async function POST(req: NextRequest) {
                 }, { status: 400 });
             }
         } else if (type === "MCP") {
-            const { serverUrl } = config;
-            if (!serverUrl) {
-                return NextResponse.json({ success: false, error: "Server URL is required for MCP" }, { status: 400 });
-            }
+            if (config.connectionType === 'STDIO') {
+                const { command, args, env } = config;
+                if (!command) {
+                    return NextResponse.json({ success: false, error: "Command is required for Stdio MCP" }, { status: 400 });
+                }
 
-            try {
-                // For MCP (SSE), we can just check if the endpoint is reachable
-                // A full MCP handshake is more complex, but a basic reachability check is a good start.
-                await axios.get(serverUrl, { headers: config.headers, timeout: 5000 });
-                return NextResponse.json({ success: true, message: "MCP Server is reachable" });
-            } catch (error: any) {
-                return NextResponse.json({
-                    success: false,
-                    error: `Failed to reach MCP server: ${error.message}`
-                }, { status: 400 });
+                // Test spawn
+                return new Promise((resolve) => {
+                    try {
+                        // Merge current env with provided env
+                        const procEnv = { ...process.env, ...env };
+                        const proc = spawn(command, args || [], { env: procEnv, shell: true });
+
+                        const timeout = setTimeout(() => {
+                            proc.kill();
+                            resolve(NextResponse.json({ success: true, message: "MCP Process spawned successfully (timeout check passed)" }));
+                        }, 2000);
+
+                        proc.on('error', (err) => {
+                            clearTimeout(timeout);
+                            resolve(NextResponse.json({ success: false, error: `Failed to spawn process: ${err.message}` }, { status: 400 }));
+                        });
+
+                        proc.on('close', (code) => {
+                            clearTimeout(timeout);
+                            if (code !== 0 && code !== null) {
+                                // Some tools exit immediately if no input is provided, which is tricky.
+                                // But a rapid non-zero exit usually means command not found or error.
+                                // For now, valid spawn is success.
+                                // A better check would be to send an initialize JSON-RPC frame.
+                                resolve(NextResponse.json({ success: false, error: `Process exited with code ${code}` }, { status: 400 }));
+                            } else {
+                                resolve(NextResponse.json({ success: true, message: "MCP Process spawned successfully" }));
+                            }
+                        });
+
+
+                    } catch (e: any) {
+                        resolve(NextResponse.json({ success: false, error: `Spawn exception: ${e.message}` }, { status: 400 }));
+                    }
+                });
+
+            } else {
+                // HTTP (SSE)
+                const { serverUrl } = config;
+                if (!serverUrl) {
+                    return NextResponse.json({ success: false, error: "Server URL is required for MCP" }, { status: 400 });
+                }
+
+                try {
+                    await axios.get(serverUrl, { headers: config.headers, timeout: 5000 });
+                    return NextResponse.json({ success: true, message: "MCP Server is reachable" });
+                } catch (error: any) {
+                    return NextResponse.json({
+                        success: false,
+                        error: `Failed to reach MCP server: ${error.message}`
+                    }, { status: 400 });
+                }
             }
         }
 
