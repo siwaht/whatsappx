@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             try {
                 // For MCP (SSE), we can just check if the endpoint is reachable
                 // A full MCP handshake is more complex, but a basic reachability check is a good start.
-                await axios.get(serverUrl, { timeout: 5000 });
+                await axios.get(serverUrl, { headers: config.headers, timeout: 5000 });
                 return NextResponse.json({ success: true, message: "MCP Server is reachable" });
             } catch (error: any) {
                 return NextResponse.json({

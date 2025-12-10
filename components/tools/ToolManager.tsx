@@ -31,9 +31,15 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, Edit, Plug, Webhook, CheckCircle2, XCircle, Play } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Plug, Webhook, CheckCircle2, XCircle, Play, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+
+interface HeaderPair {
+    key: string;
+    value: string;
+    isVisible?: boolean;
+}
 
 export function ToolManager() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,7 +50,7 @@ export function ToolManager() {
 
     // Structured inputs
     const [webhookUrl, setWebhookUrl] = useState("");
-    const [webhookHeaders, setWebhookHeaders] = useState("{}");
+    const [headers, setHeaders] = useState<HeaderPair[]>([]);
     const [mcpServerUrl, setMcpServerUrl] = useState("");
 
     // Testing state
@@ -99,7 +105,7 @@ export function ToolManager() {
         setDescription("");
         setType("WEBHOOK");
         setWebhookUrl("");
-        setWebhookHeaders("{}");
+        setHeaders([]);
         setMcpServerUrl("");
         setTestResult(null);
     };
@@ -111,9 +117,16 @@ export function ToolManager() {
         setType(tool.type);
         setTestResult(null);
 
+        const configHeaders = tool.config.headers || {};
+        const headerPairs = Object.entries(configHeaders).map(([key, value]) => ({
+            key,
+            value: value as string,
+            isVisible: false
+        }));
+        setHeaders(headerPairs);
+
         if (tool.type === 'WEBHOOK') {
             setWebhookUrl(tool.config.url || "");
-            setWebhookHeaders(JSON.stringify(tool.config.headers || {}, null, 2));
         } else if (tool.type === 'MCP') {
             setMcpServerUrl(tool.config.serverUrl || "");
         }
@@ -121,16 +134,41 @@ export function ToolManager() {
         setIsDialogOpen(true);
     };
 
+    // Header management functions
+    const addHeader = () => {
+        setHeaders([...headers, { key: '', value: '', isVisible: false }]);
+    };
+
+    const removeHeader = (index: number) => {
+        const newHeaders = [...headers];
+        newHeaders.splice(index, 1);
+        setHeaders(newHeaders);
+    };
+
+    const updateHeader = (index: number, field: 'key' | 'value', newValue: string) => {
+        const newHeaders = [...headers];
+        newHeaders[index][field] = newValue;
+        setHeaders(newHeaders);
+    };
+
+    const toggleHeaderVisibility = (index: number) => {
+        const newHeaders = [...headers];
+        newHeaders[index].isVisible = !newHeaders[index].isVisible;
+        setHeaders(newHeaders);
+    };
+
     const getConfig = () => {
-        if (type === 'WEBHOOK') {
-            try {
-                const headers = JSON.parse(webhookHeaders);
-                return { url: webhookUrl, headers };
-            } catch (e) {
-                throw new Error("Invalid Headers JSON");
+        const headersObj: Record<string, string> = {};
+        headers.forEach(h => {
+            if (h.key.trim()) {
+                headersObj[h.key.trim()] = h.value;
             }
+        });
+
+        if (type === 'WEBHOOK') {
+            return { url: webhookUrl, headers: headersObj };
         } else {
-            return { serverUrl: mcpServerUrl };
+            return { serverUrl: mcpServerUrl, headers: headersObj };
         }
     };
 
@@ -167,6 +205,61 @@ export function ToolManager() {
         }
     };
 
+    const HeaderBuilder = () => (
+        <div className="space-y-2">
+            <Label>Headers</Label>
+            <div className="space-y-2">
+                {headers.map((header, index) => (
+                    <div key={index} className="flex gap-2 items-start">
+                        <Input
+                            placeholder="Key (e.g. Authorization)"
+                            value={header.key}
+                            onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                            className="flex-1"
+                        />
+                        <div className="flex-1 relative">
+                            <Input
+                                type={header.isVisible ? "text" : "password"}
+                                placeholder="Value"
+                                value={header.value}
+                                onChange={(e) => updateHeader(index, 'value', e.target.value)}
+                                className="pr-8"
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-2 hover:bg-transparent"
+                                onClick={() => toggleHeaderVisibility(index)}
+                            >
+                                {header.isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            </Button>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeHeader(index)}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ))}
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addHeader}
+                    className="w-full border-dashed"
+                >
+                    <Plus className="h-3 w-3 mr-2" />
+                    Add Header
+                </Button>
+            </div>
+        </div>
+    );
+
     if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
     return (
@@ -182,7 +275,7 @@ export function ToolManager() {
                             Add Tool
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
+                    <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>{editingTool ? 'Edit Tool' : 'Create New Tool'}</DialogTitle>
                             <DialogDescription>
@@ -227,16 +320,7 @@ export function ToolManager() {
                                                 placeholder="https://api.example.com/webhook"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="webhookHeaders">Headers (JSON)</Label>
-                                            <Textarea
-                                                id="webhookHeaders"
-                                                value={webhookHeaders}
-                                                onChange={(e) => setWebhookHeaders(e.target.value)}
-                                                className="font-mono text-sm h-24"
-                                                placeholder='{ "Authorization": "Bearer token" }'
-                                            />
-                                        </div>
+                                        <HeaderBuilder />
                                     </div>
                                 )}
 
@@ -254,6 +338,7 @@ export function ToolManager() {
                                                 The URL of the MCP server's SSE endpoint.
                                             </p>
                                         </div>
+                                        <HeaderBuilder />
                                     </div>
                                 )}
                             </div>
@@ -332,4 +417,3 @@ export function ToolManager() {
         </div>
     );
 }
-
