@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 import { getEvolutionAPI, EvolutionAPIClient } from "@/lib/evolution-api";
 
 export const dynamic = 'force-dynamic';
@@ -21,16 +21,16 @@ import { Button } from "@/components/ui/button";
 
 
 async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
-    if (!supabase) return null;
+    const user = await prisma.user.findUnique({
+        where: { id: parseInt(userId) },
+        select: {
+            evolutionApiUrl: true,
+            evolutionApiKey: true,
+        },
+    });
 
-    const { data: user } = await supabase
-        .from('users')
-        .select('evolution_api_url, evolution_api_key')
-        .eq('id', parseInt(userId))
-        .maybeSingle();
-
-    if (user?.evolution_api_url && user?.evolution_api_key) {
-        return new EvolutionAPIClient(user.evolution_api_url, user.evolution_api_key);
+    if (user?.evolutionApiUrl && user?.evolutionApiKey) {
+        return new EvolutionAPIClient(user.evolutionApiUrl, user.evolutionApiKey);
     }
 
     const envUrl = process.env.EVOLUTION_API_URL;
@@ -44,13 +44,8 @@ async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
 }
 
 async function getContactCount() {
-    if (!supabase) return 0;
-
-    const { count } = await supabase
-        .from('contacts')
-        .select('*', { count: 'exact', head: true });
-
-    return count || 0;
+    const count = await prisma.contact.count();
+    return count;
 }
 
 export default async function DashboardPage() {
@@ -59,7 +54,7 @@ export default async function DashboardPage() {
         session = await auth();
     } catch (e) {
         console.error("Auth error:", e);
-        return null; // Or redirect to login
+        return null;
     }
 
     if (!session?.user) return null;
@@ -178,7 +173,7 @@ export default async function DashboardPage() {
         {
             label: "API Documentation",
             icon: FileCode,
-            href: "/docs", // Assuming docs route or external link
+            href: "/docs",
             color: "text-pink-400"
         }
     ];

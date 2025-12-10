@@ -1,6 +1,7 @@
 modules = ["nodejs-20", "web"]
 [agent]
 expertMode = true
+integrations = ["javascript_database:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
@@ -30,20 +31,24 @@ args = "Next.js Frontend"
 name = "Next.js Frontend"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
-[workflows.workflow.metadata]
-outputType = "webview"
+[[ports]]
+localPort = 3000
+externalPort = 3002
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 43251
+localPort = 44373
 externalPort = 3001
 
 [[ports]]

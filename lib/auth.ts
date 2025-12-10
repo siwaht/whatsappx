@@ -1,56 +1,59 @@
 import NextAuth, { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { supabase } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
 async function getUserWithPermissions(email: string) {
   try {
-    if (!supabase) {
-      console.warn('Supabase not configured, skipping user fetch');
+    const userData = await prisma.user.findFirst({
+      where: {
+        email,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        password: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!userData) {
       return null;
     }
-
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, email, username, password, first_name, last_name, is_active')
-      .eq('email', email)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (userError || !userData) {
-      return null;
-    }
-
-    const { data: permissionsData } = await supabase
-      .from('user_roles')
-      .select(`
-        roles (
-          name,
-          role_permissions (
-            permissions (
-              name
-            )
-          )
-        )
-      `)
-      .eq('user_id', userData.id);
 
     const permissions: string[] = [];
     let role: string | null = null;
 
-    if (permissionsData && permissionsData.length > 0) {
-      const roleData = permissionsData[0].roles as any;
-      role = roleData.name;
+    if (userData.userRoles && userData.userRoles.length > 0) {
+      const userRole = userData.userRoles[0];
+      role = userRole.role.name;
 
-      if (roleData.role_permissions) {
+      if (userRole.role.rolePermissions) {
         permissions.push(
-          ...roleData.role_permissions.map((rp: any) => rp.permissions.name)
+          ...userRole.role.rolePermissions.map((rp) => rp.permission.name)
         );
       }
     }
 
-    const displayName = userData.first_name && userData.last_name
-      ? `${userData.first_name} ${userData.last_name}`
+    const displayName = userData.firstName && userData.lastName
+      ? `${userData.firstName} ${userData.lastName}`
       : userData.username;
 
     return {
@@ -59,7 +62,7 @@ async function getUserWithPermissions(email: string) {
       name: displayName,
       role,
       permissions,
-      isActive: userData.is_active,
+      isActive: userData.isActive,
       passwordHash: userData.password,
     };
   } catch (error) {
@@ -70,12 +73,10 @@ async function getUserWithPermissions(email: string) {
 
 async function updateLastLogin(userId: string) {
   try {
-    if (!supabase) return;
-
-    await supabase
-      .from('users')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', parseInt(userId));
+    await prisma.user.update({
+      where: { id: parseInt(userId) },
+      data: { lastLoginAt: new Date() },
+    });
   } catch (error) {
     console.error('Error updating last login:', error);
   }
@@ -110,10 +111,8 @@ export const authConfig: NextAuthConfig = {
             return null;
           }
 
-          // Update last login
           await updateLastLogin(user.id);
 
-          // Remove password hash from response
           const { passwordHash, ...userWithoutPassword } = user;
 
           return userWithoutPassword;
@@ -169,7 +168,7 @@ export const authConfig: NextAuthConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
