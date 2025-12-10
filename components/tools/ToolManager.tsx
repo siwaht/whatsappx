@@ -31,7 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, Edit, Plug, Webhook } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Plug, Webhook, CheckCircle2, XCircle, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -41,7 +41,15 @@ export function ToolManager() {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [type, setType] = useState("WEBHOOK");
-    const [config, setConfig] = useState("{}");
+
+    // Structured inputs
+    const [webhookUrl, setWebhookUrl] = useState("");
+    const [webhookHeaders, setWebhookHeaders] = useState("{}");
+    const [mcpServerUrl, setMcpServerUrl] = useState("");
+
+    // Testing state
+    const [isTesting, setIsTesting] = useState(false);
+    const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -90,7 +98,10 @@ export function ToolManager() {
         setName("");
         setDescription("");
         setType("WEBHOOK");
-        setConfig("{}");
+        setWebhookUrl("");
+        setWebhookHeaders("{}");
+        setMcpServerUrl("");
+        setTestResult(null);
     };
 
     const handleEdit = (tool: any) => {
@@ -98,21 +109,61 @@ export function ToolManager() {
         setName(tool.name);
         setDescription(tool.description || "");
         setType(tool.type);
-        setConfig(JSON.stringify(tool.config, null, 2));
+        setTestResult(null);
+
+        if (tool.type === 'WEBHOOK') {
+            setWebhookUrl(tool.config.url || "");
+            setWebhookHeaders(JSON.stringify(tool.config.headers || {}, null, 2));
+        } else if (tool.type === 'MCP') {
+            setMcpServerUrl(tool.config.serverUrl || "");
+        }
+
         setIsDialogOpen(true);
+    };
+
+    const getConfig = () => {
+        if (type === 'WEBHOOK') {
+            try {
+                const headers = JSON.parse(webhookHeaders);
+                return { url: webhookUrl, headers };
+            } catch (e) {
+                throw new Error("Invalid Headers JSON");
+            }
+        } else {
+            return { serverUrl: mcpServerUrl };
+        }
+    };
+
+    const handleTest = async () => {
+        setIsTesting(true);
+        setTestResult(null);
+        try {
+            const config = getConfig();
+            const response = await axios.post('/api/tools/test', { type, config });
+
+            if (response.data.success) {
+                setTestResult('success');
+                toast.success(response.data.message);
+            }
+        } catch (error: any) {
+            setTestResult('error');
+            toast.error(error.response?.data?.error || error.message || "Test failed");
+        } finally {
+            setIsTesting(false);
+        }
     };
 
     const handleSubmit = () => {
         try {
-            const parsedConfig = JSON.parse(config);
+            const config = getConfig();
             mutation.mutate({
                 name,
                 description,
                 type,
-                config: parsedConfig
+                config
             });
-        } catch (e) {
-            toast.error("Invalid JSON configuration");
+        } catch (e: any) {
+            toast.error(e.message);
         }
     };
 
@@ -141,11 +192,12 @@ export function ToolManager() {
                         <div className="grid gap-4 py-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Name</Label>
-                                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Webhook" />
+                                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Tool" />
                             </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="type">Type</Label>
-                                <Select value={type} onValueChange={setType}>
+                                <Select value={type} onValueChange={(val) => { setType(val); setTestResult(null); }}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -155,24 +207,71 @@ export function ToolManager() {
                                     </SelectContent>
                                 </Select>
                             </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="description">Description</Label>
                                 <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="config">Configuration (JSON)</Label>
-                                <div className="text-xs text-muted-foreground mb-1">
-                                    {type === 'WEBHOOK' ? 'Example: { "url": "https://api.example.com/webhook", "headers": { "Authorization": "Bearer token" } }' : 'Example: { "serverUrl": "http://localhost:3000/mcp" }'}
-                                </div>
-                                <Textarea
-                                    id="config"
-                                    value={config}
-                                    onChange={(e) => setConfig(e.target.value)}
-                                    className="font-mono text-sm h-32"
-                                />
+
+                            <div className="border-t pt-4 mt-2">
+                                <h4 className="text-sm font-medium mb-3">Configuration</h4>
+
+                                {type === 'WEBHOOK' && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="webhookUrl">Webhook URL</Label>
+                                            <Input
+                                                id="webhookUrl"
+                                                value={webhookUrl}
+                                                onChange={(e) => setWebhookUrl(e.target.value)}
+                                                placeholder="https://api.example.com/webhook"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="webhookHeaders">Headers (JSON)</Label>
+                                            <Textarea
+                                                id="webhookHeaders"
+                                                value={webhookHeaders}
+                                                onChange={(e) => setWebhookHeaders(e.target.value)}
+                                                className="font-mono text-sm h-24"
+                                                placeholder='{ "Authorization": "Bearer token" }'
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {type === 'MCP' && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="mcpServerUrl">MCP Server URL</Label>
+                                            <Input
+                                                id="mcpServerUrl"
+                                                value={mcpServerUrl}
+                                                onChange={(e) => setMcpServerUrl(e.target.value)}
+                                                placeholder="http://localhost:3000/sse"
+                                            />
+                                            <p className="text-[0.8rem] text-muted-foreground">
+                                                The URL of the MCP server's SSE endpoint.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleTest}
+                                    disabled={isTesting || (type === 'WEBHOOK' && !webhookUrl) || (type === 'MCP' && !mcpServerUrl)}
+                                >
+                                    {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                                    Test Connection
+                                </Button>
+                                {testResult === 'success' && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+                                {testResult === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
+                            </div>
                             <Button onClick={handleSubmit} disabled={mutation.isPending || !name}>
                                 {mutation.isPending ? "Saving..." : "Save Tool"}
                             </Button>
@@ -188,7 +287,7 @@ export function ToolManager() {
                             <TableHead>Name</TableHead>
                             <TableHead>Type</TableHead>
                             <TableHead>Description</TableHead>
-                            <TableHead>Config</TableHead>
+                            <TableHead>Config Summary</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -203,8 +302,8 @@ export function ToolManager() {
                                     <Badge variant="outline">{tool.type}</Badge>
                                 </TableCell>
                                 <TableCell>{tool.description}</TableCell>
-                                <TableCell className="font-mono text-xs max-w-[200px] truncate">
-                                    {JSON.stringify(tool.config)}
+                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                    {tool.type === 'WEBHOOK' ? tool.config.url : tool.config.serverUrl}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
@@ -233,3 +332,4 @@ export function ToolManager() {
         </div>
     );
 }
+
