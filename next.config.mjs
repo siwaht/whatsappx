@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Allow Replit dev origins
-  allowedDevOrigins: ['*'],
+  allowedDevOrigins: [
+    'https://a521b004-894b-4784-a905-5981b2657b30-00-3nqurx49zbbid.worf.replit.dev',
+    '.replit.dev',
+    '.repl.co',
+  ],
   // Standalone output for Replit/Docker deployment
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
