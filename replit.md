@@ -5,18 +5,12 @@ This is a full-featured WhatsApp management dashboard built with Next.js 16 and 
 
 **Current State**: Fully configured and running on Replit with PostgreSQL database integration.
 
-## Recent Changes (December 1, 2024)
-- ✅ Migrated from GitHub to Replit environment
-- ✅ Configured PostgreSQL database using Replit's built-in Neon database
-- ✅ Downgraded Prisma from v7 to v6 for compatibility
-- ✅ Set up environment variables (DATABASE_URL, NEXTAUTH_SECRET, EVOLUTION_API_KEY)
-- ✅ Ran Prisma migrations and seeded database with admin user
-- ✅ Fixed Next.js configuration to work with Replit proxy
-- ✅ Configured dev server to run on port 5000 with 0.0.0.0 binding
-- ✅ Removed duplicate page directories to fix routing conflicts
-- ✅ Disabled Edge runtime middleware (incompatible with bcrypt)
-- ✅ Installed missing dependencies (@radix-ui/react-popover, tailwindcss-animate)
-- ✅ Set up deployment configuration for Replit Autoscale
+## Recent Changes (December 10, 2024)
+- Migrated database from Supabase to Replit's built-in PostgreSQL (Neon)
+- Converted all database queries from Supabase client to Prisma ORM
+- Removed Supabase dependencies and unused Drizzle packages
+- Pushed Prisma schema and seeded database with admin user
+- Configured Next.js to run on port 5000 for Replit compatibility
 
 ## Project Architecture
 
@@ -81,7 +75,7 @@ This is a full-featured WhatsApp management dashboard built with Next.js 16 and 
 │   └── layout/             # Layout components
 ├── lib/                     # Core libraries
 │   ├── auth.ts             # NextAuth configuration
-│   ├── db.ts               # Prisma client
+│   ├── prisma.ts           # Prisma client
 │   ├── evolution-api.ts    # Evolution API client
 │   └── utils.ts            # Utilities
 ├── prisma/                  # Database
@@ -95,7 +89,7 @@ This is a full-featured WhatsApp management dashboard built with Next.js 16 and 
 ### Required (Already Configured)
 - `DATABASE_URL` - PostgreSQL connection string (Replit secret)
 - `NEXTAUTH_SECRET` - NextAuth.js secret for JWT signing
-- `NEXTAUTH_URL` - Application URL (https://workspace.mediumreach2025.repl.co)
+- `NEXTAUTH_URL` - Application URL
 - `NODE_ENV` - Set to "development"
 
 ### Evolution API Configuration
@@ -109,8 +103,10 @@ This is a full-featured WhatsApp management dashboard built with Next.js 16 and 
 ### Schema
 The PostgreSQL database includes:
 - **Users & Auth**: users, roles, permissions, user_roles, role_permissions, sessions
-- **WhatsApp Data**: webhook_events, message_stats, contacts_cache
-- **Audit**: audit_logs, rate_limit_entries
+- **WhatsApp Data**: webhook_events, message_stats, contacts_cache, contacts, conversations, messages
+- **Broadcasts**: broadcasts, broadcast_logs
+- **AI**: ai_agents, tools, instance_configs
+- **Audit**: audit_logs, rate_limit_entries, subscriptions
 
 ### Admin User
 Default admin credentials (created via seed):
@@ -118,7 +114,7 @@ Default admin credentials (created via seed):
 - **Password**: Hola173!
 - **Role**: admin (full access)
 
-⚠️ **IMPORTANT**: Change the admin password immediately after first login!
+**IMPORTANT**: Change the admin password immediately after first login!
 
 ## Running the Project
 
@@ -127,7 +123,7 @@ The project runs automatically via the workflow:
 ```bash
 npm run dev
 ```
-- Binds to: 0.0.0.0:5000
+- Binds to port 5000
 - Auto-restarts on file changes
 - Accessible via Replit webview
 
@@ -138,6 +134,7 @@ npm run start       # Start production server
 npx prisma studio   # Open Prisma Studio for DB management
 npx prisma generate # Regenerate Prisma client
 npx prisma db push  # Push schema changes to database
+npx tsx prisma/seed.ts # Seed the database
 ```
 
 ## Deployment
@@ -145,7 +142,6 @@ Configured for **Replit Autoscale**:
 - Build: `npm run build`
 - Run: `npm run start`
 - Port: 5000
-- Output: standalone
 
 To deploy: Click the "Deploy" button in Replit
 
@@ -156,15 +152,9 @@ To deploy: Click the "Deploy" button in Replit
 2. **Middleware Disabled**: Edge runtime middleware is disabled due to bcrypt incompatibility. Authentication is handled at the component/API level.
 3. **WebSocket Not Connected**: Real-time features require Evolution API WebSocket connection.
 
-### Resolved Issues
-- ✅ Fixed duplicate route errors (removed /login, /contacts, etc. at root)
-- ✅ Fixed Edge runtime crypto errors (disabled middleware)
-- ✅ Fixed missing dependencies (radix-ui/react-popover, tailwindcss-animate)
-- ✅ Downgraded Prisma from v7 to v6 for stability
-
 ## User Preferences
 - **Coding Style**: TypeScript with strict typing, functional components with hooks
-- **Authentication**: NextAuth.js v5 with database session strategy
+- **Authentication**: NextAuth.js v5 with JWT session strategy
 - **Database**: Prisma ORM with PostgreSQL
 - **UI Framework**: shadcn/ui components with Tailwind CSS
 
@@ -195,5 +185,5 @@ To fully use this dashboard:
 - shadcn/ui: https://ui.shadcn.com
 
 ---
-**Last Updated**: December 1, 2024
+**Last Updated**: December 10, 2024
 **Maintained By**: Replit Agent
