@@ -13,7 +13,7 @@ NEXTAUTH_SECRET = "mJc1nwO9BAEdl/Y6MwEcs0FLepAIMRn3vCGCmeZ2Ado="
 EVOLUTION_API_URL = "http://localhost:8080"
 EVOLUTION_API_KEY = "change-this-api-key"
 NODE_ENV = "development"
-NEXTAUTH_URL = "https://workspace.mediumreach2025.repl.co"
+NEXTAUTH_URL = "https://a521b004-894b-4784-a905-5981b2657b30-00-3nqurx49zbbid.worf.replit.dev"
 
 [workflows]
 runButton = "Project"
