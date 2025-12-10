@@ -61,6 +61,7 @@ model User {
   lockedUntil   DateTime? @map("locked_until")
   evolutionApiUrl String? @map("evolution_api_url")
   evolutionApiKey String? @map("evolution_api_key")
+  picaSecretKey   String? @map("pica_secret_key")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   createdById   Int?      @map("created_by_id")

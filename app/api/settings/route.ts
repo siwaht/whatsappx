@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     // Fetch user settings from DB
     const user = await prisma.user.findUnique({
       where: { id: parseInt(session.user.id) },
-      select: { evolutionApiUrl: true, evolutionApiKey: true }
+      select: { evolutionApiUrl: true, evolutionApiKey: true, picaSecretKey: true }
     });
 
     const searchParams = request.nextUrl.searchParams;
@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ...instanceSettings,
       evolutionApiUrl: user?.evolutionApiUrl || '',
-      evolutionApiKey: user?.evolutionApiKey || ''
+      evolutionApiKey: user?.evolutionApiKey || '',
+      picaSecretKey: user?.picaSecretKey || ''
     });
 
   } catch (error: any) {
@@ -71,13 +72,15 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     // Update User Settings if provided
-    if (evolutionApiUrl !== undefined || evolutionApiKey !== undefined) {
+    if (evolutionApiUrl !== undefined || evolutionApiKey !== undefined || body.picaSecretKey !== undefined) {
+      const updateData: any = {};
+      if (evolutionApiUrl !== undefined) updateData.evolutionApiUrl = evolutionApiUrl;
+      if (evolutionApiKey !== undefined) updateData.evolutionApiKey = evolutionApiKey;
+      if (body.picaSecretKey !== undefined) updateData.picaSecretKey = body.picaSecretKey;
+
       await prisma.user.update({
         where: { id: parseInt(session.user.id) },
-        data: {
-          evolutionApiUrl,
-          evolutionApiKey
-        }
+        data: updateData
       });
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,19 +29,98 @@ export default function ApiManagementPage() {
         setConfig(prev => ({ ...prev, [key]: value }));
     };
 
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch('/api/settings');
+                if (response.ok) {
+                    const data = await response.json();
+                    setConfig({
+                        databaseUrl: data.databaseUrl || "",
+                        evolutionApiUrl: data.evolutionApiUrl || "",
+                        evolutionApiKey: data.evolutionApiKey || "",
+                        picaSecretKey: data.picaSecretKey || "",
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch settings", error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const verifyConnection = async (type: 'evolution' | 'pica') => {
+        setLoading(true);
+        try {
+            const credentials = type === 'evolution'
+                ? { url: config.evolutionApiUrl, apiKey: config.evolutionApiKey }
+                : { secretKey: config.picaSecretKey };
+
+            const response = await fetch('/api/admin/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, credentials }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                toast({
+                    title: "Connection Successful",
+                    description: data.message,
+                });
+                return true;
+            } else {
+                throw new Error(data.error || 'Verification failed');
+            }
+        } catch (error: any) {
+            toast({
+                title: "Connection Failed",
+                description: error.message || "Could not verify connection",
+                variant: "destructive",
+            });
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         setLoading(true);
-        // Simulate API call to save settings
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            // Verify Evolution if provided
+            if (config.evolutionApiUrl && config.evolutionApiKey) {
+                const evoValid = await verifyConnection('evolution');
+                if (!evoValid) return; // Stop if verification fails
+            }
 
-        // Detailed implementation would POST to an API route to save these values securely
-        // For now, we'll just show a success toast
+            // Verify Pica if provided
+            if (config.picaSecretKey) {
+                const picaValid = await verifyConnection('pica');
+                if (!picaValid) return; // Stop if verification fails
+            }
 
-        toast({
-            title: "Settings Saved",
-            description: "API configurations have been updated successfully.",
-        });
-        setLoading(false);
+            const response = await fetch('/api/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config),
+            });
+
+            if (!response.ok) throw new Error('Failed to save settings');
+
+            toast({
+                title: "Settings Saved",
+                description: "API configurations have been updated successfully.",
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to save settings",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
