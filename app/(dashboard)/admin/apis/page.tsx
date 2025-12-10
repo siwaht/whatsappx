@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Save, Eye, EyeOff, Database, Server, Key } from "lucide-react";
+import { Save, Eye, EyeOff, Database, Server, Key, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function ApiManagementPage() {
@@ -20,6 +20,11 @@ export default function ApiManagementPage() {
         evolutionApiKey: "",
         picaSecretKey: "",
     });
+
+    const [connectionStatus, setConnectionStatus] = useState<{
+        evolution: 'idle' | 'success' | 'error';
+        pica: 'idle' | 'success' | 'error';
+    }>({ evolution: 'idle', pica: 'idle' });
 
     const toggleSecret = (key: string) => {
         setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
@@ -40,6 +45,12 @@ export default function ApiManagementPage() {
                         evolutionApiUrl: data.evolutionApiUrl || "",
                         evolutionApiKey: data.evolutionApiKey || "",
                         picaSecretKey: data.picaSecretKey || "",
+                    });
+
+                    // Optimistically set status if keys exist (optional, or just leave idle)
+                    setConnectionStatus({
+                        evolution: data.evolutionApiUrl && data.evolutionApiKey ? 'idle' : 'idle',
+                        pica: data.picaSecretKey ? 'idle' : 'idle'
                     });
                 }
             } catch (error) {
@@ -65,15 +76,18 @@ export default function ApiManagementPage() {
             const data = await response.json();
 
             if (response.ok && data.success) {
+                setConnectionStatus(prev => ({ ...prev, [type]: 'success' }));
                 toast({
                     title: "Connection Successful",
                     description: data.message,
                 });
                 return true;
             } else {
+                setConnectionStatus(prev => ({ ...prev, [type]: 'error' }));
                 throw new Error(data.error || 'Verification failed');
             }
         } catch (error: any) {
+            setConnectionStatus(prev => ({ ...prev, [type]: 'error' }));
             toast({
                 title: "Connection Failed",
                 description: error.message || "Could not verify connection",
@@ -175,6 +189,18 @@ export default function ApiManagementPage() {
                         <CardTitle className="flex items-center gap-2">
                             <Server className="w-5 h-5 text-green-500" />
                             Evolution API
+                            {connectionStatus.evolution === 'success' && (
+                                <span className="flex items-center text-sm font-normal text-green-600 ml-2 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                                    Connected
+                                </span>
+                            )}
+                            {connectionStatus.evolution === 'error' && (
+                                <span className="flex items-center text-sm font-normal text-red-600 ml-2 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Failed
+                                </span>
+                            )}
                         </CardTitle>
                         <CardDescription>
                             Connection details for the WhatsApp Evolution API instance.
@@ -222,6 +248,18 @@ export default function ApiManagementPage() {
                         <CardTitle className="flex items-center gap-2">
                             <Key className="w-5 h-5 text-purple-500" />
                             Pica Integration
+                            {connectionStatus.pica === 'success' && (
+                                <span className="flex items-center text-sm font-normal text-green-600 ml-2 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                                    Connected
+                                </span>
+                            )}
+                            {connectionStatus.pica === 'error' && (
+                                <span className="flex items-center text-sm font-normal text-red-600 ml-2 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Failed
+                                </span>
+                            )}
                         </CardTitle>
                         <CardDescription>
                             Secret keys for PicaOS services (Stripe, AI, etc).
