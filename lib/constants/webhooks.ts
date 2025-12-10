@@ -1,0 +1,20 @@
+export const WEBHOOK_EVENTS = [
+    'MESSAGES_UPSERT',
+    'MESSAGES_UPDATE',
+    'MESSAGES_DELETE',
+    'SEND_MESSAGE',
+    'CONTACTS_UPSERT',
+    'CONTACTS_UPDATE',
+    'PRESENCE_UPDATE',
+    'CHATS_SET',
+    'CHATS_UPSERT',
+    'CHATS_UPDATE',
+    'CHATS_DELETE',
+    'GROUPS_UPSERT',
+    'GROUP_UPDATE',
+    'GROUP_PARTICIPANTS_UPDATE',
+    'CONNECTION_UPDATE',
+    'QRCODE_UPDATED'
+] as const;
+
+export type WebhookEventType = typeof WEBHOOK_EVENTS[number];

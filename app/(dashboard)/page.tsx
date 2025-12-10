@@ -18,6 +18,20 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+interface Instance {
+    instanceName: string;
+    owner: string;
+    profileName: string;
+    profilePictureUrl: string;
+    profileStatus: string;
+    status: string;
+    serverUrl: string;
+}
+
+interface EvolutionApiResponse {
+    entry: Instance[];
+}
+
 
 
 async function getClient(userId: string): Promise<EvolutionAPIClient | null> {
@@ -63,7 +77,7 @@ export default async function DashboardPage() {
     const firstName = userName.split(" ")[0];
 
     let totalContacts = 0;
-    let instances: any[] = [];
+    let instances: Instance[] = [];
     let apiConfigured = false;
 
     try {
@@ -83,11 +97,14 @@ export default async function DashboardPage() {
         }
 
         if (results[1].status === 'fulfilled') {
-            const response: any = results[1].value;
+            const response = results[1].value as unknown as Instance[] | EvolutionApiResponse;
             if (Array.isArray(response)) {
                 instances = response;
-            } else if (response && Array.isArray(response.data)) {
-                instances = response.data;
+            } else if (response && 'entry' in response && Array.isArray(response.entry)) {
+                // Adjust based on actual API response structure if needed, but assuming a standard structure or direct array
+                instances = response.entry;
+            } else if (response && 'data' in response && Array.isArray((response as any).data)) {
+                instances = (response as any).data;
             }
         }
 
@@ -95,7 +112,7 @@ export default async function DashboardPage() {
         console.error("Dashboard data fetch error:", error);
     }
 
-    const activeInstances = Array.isArray(instances) ? instances.filter((i: any) => i.status === 'open').length : 0;
+    const activeInstances = Array.isArray(instances) ? instances.filter((i) => i.status === 'open').length : 0;
     const totalInstances = Array.isArray(instances) ? instances.length : 0;
     const inactiveInstances = totalInstances - activeInstances;
 

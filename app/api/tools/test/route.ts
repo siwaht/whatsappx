@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
                 }
 
                 // Test spawn
-                return new Promise((resolve) => {
+                return new Promise<NextResponse>((resolve) => {
                     try {
                         // Merge current env with provided env
                         const procEnv = { ...process.env, ...env };

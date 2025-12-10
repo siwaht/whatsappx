@@ -13,6 +13,13 @@ const outfit = Outfit({
   variable: "--font-outfit",
 });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: {
     default: "WhatsApp Dashboard | Evolution API v2",

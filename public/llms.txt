@@ -1,0 +1,26 @@
+# WhatsAppX Dashboard
+
+## Project Description
+WhatsAppX is a modern, high-performance dashboard for managing WhatsApp instances via Evolution API v2. It provides a comprehensive interface for managing chats, contacts, broadcasts, and AI agents.
+
+## Key Features
+- **Instance Management**: Create and manage multiple WhatsApp instances.
+- **Unified Inbox**: Real-time chat interface with rich media support.
+- **Broadcasts**: Send bulk messages to contacts or groups.
+- **AI Agents**: Integrate AI agents for automated responses.
+- **Contact Management**: CRM-like features for managing contacts and groups.
+- **API Integration**: Built on top of Evolution API v2.
+
+## Technology Stack
+- **Frontend**: Next.js 15 (App Router), React, TailwindCSS, Lucide Icons, Shadcn/UI.
+- **Backend**: Next.js API Routes, Prisma ORM, PostgreSQL.
+- **State Management**: Zustand, React Query.
+- **Authentication**: NextAuth.js.
+
+## Navigation
+- `/`: Dashboard Home
+- `/instances`: Instance Management
+- `/chat`: Unified Chat Interface
+- `/contacts`: Contact CRM
+- `/broadcast`: Broadcast Campaigns
+- `/settings`: Application Settings

@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { useInstancesStore } from "@/lib/store/instances";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import { WEBHOOK_EVENTS } from "@/lib/constants/webhooks";
 
 export const WebhookConfig = () => {
     const { instances, selectedInstance } = useInstancesStore();
@@ -140,24 +141,7 @@ export const WebhookConfig = () => {
                     <div className="space-y-3">
                         <Label>Events to listen</Label>
                         <div className="grid grid-cols-2 gap-4">
-                            {[
-                                'MESSAGES_UPSERT',
-                                'MESSAGES_UPDATE',
-                                'MESSAGES_DELETE',
-                                'SEND_MESSAGE',
-                                'CONTACTS_UPSERT',
-                                'CONTACTS_UPDATE',
-                                'PRESENCE_UPDATE',
-                                'CHATS_SET',
-                                'CHATS_UPSERT',
-                                'CHATS_UPDATE',
-                                'CHATS_DELETE',
-                                'GROUPS_UPSERT',
-                                'GROUP_UPDATE',
-                                'GROUP_PARTICIPANTS_UPDATE',
-                                'CONNECTION_UPDATE',
-                                'QRCODE_UPDATED'
-                            ].map((event) => (
+                            {WEBHOOK_EVENTS.map((event) => (
                                 <div key={event} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={event}
