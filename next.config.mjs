@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow Replit dev origins
+  allowedDevOrigins: ['*'],
   // Standalone output for Replit/Docker deployment
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
@@ -20,10 +22,6 @@ const nextConfig = {
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
           },
           {
             key: 'X-Content-Type-Options',
